@@ -1,0 +1,418 @@
+<title>IQR System Design</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,650&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+  :root {
+    --paper: #FAF9F5; --surface: #F2F0E9; --ink: #1C2321; --ink-soft: #52605B;
+    --line: #DDD9CE; --accent: #0E6E5C; --accent-ink: #0A5546;
+    --amber: #8A5A17; --crit: #A63A3A; --chip-pass-bg: #E3EFE9;
+    --chip-warn-bg: #F5EBD8; --chip-crit-bg: #F3E2E2; --code-bg: #EEECE4;
+  }
+  :root:not([data-theme="light"]) { }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --paper: #131917; --surface: #1B2320; --ink: #E8EDE9; --ink-soft: #9FAFA8;
+      --line: #2C3833; --accent: #3FA98C; --accent-ink: #5FC4A8;
+      --amber: #D9A24E; --crit: #D97C7C; --chip-pass-bg: #1D332B;
+      --chip-warn-bg: #33291672; --chip-crit-bg: #33201f; --code-bg: #1F2A26;
+    }
+  }
+  :root[data-theme="dark"] {
+    --paper: #131917; --surface: #1B2320; --ink: #E8EDE9; --ink-soft: #9FAFA8;
+    --line: #2C3833; --accent: #3FA98C; --accent-ink: #5FC4A8;
+    --amber: #D9A24E; --crit: #D97C7C; --chip-pass-bg: #1D332B;
+    --chip-warn-bg: #33291672; --chip-crit-bg: #33201f; --code-bg: #1F2A26;
+  }
+  * { box-sizing: border-box; }
+  body {
+    background: var(--paper); color: var(--ink);
+    font-family: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+    font-size: 16px; line-height: 1.65; margin: 0;
+  }
+  .wrap { max-width: 76ch; margin: 0 auto; padding: 3.5rem 1.4rem 6rem; }
+  header.masthead { border-bottom: 3px double var(--line); padding-bottom: 2rem; margin-bottom: 2.6rem; }
+  .eyebrow {
+    font-size: .72rem; letter-spacing: .14em; text-transform: uppercase;
+    color: var(--accent); font-weight: 600; margin: 0 0 .8rem;
+  }
+  h1 {
+    font-family: "Fraunces", Georgia, serif; font-weight: 650;
+    font-size: clamp(2rem, 5vw, 2.9rem); line-height: 1.12;
+    margin: 0 0 1rem; text-wrap: balance;
+  }
+  .standfirst { font-size: 1.06rem; color: var(--ink-soft); max-width: 62ch; margin: 0; }
+  h2 {
+    font-family: "Fraunces", Georgia, serif; font-weight: 650;
+    font-size: 1.55rem; line-height: 1.2; margin: 3.2rem 0 1rem;
+    text-wrap: balance; display: flex; align-items: baseline; gap: .75rem;
+  }
+  h2 .num {
+    font-family: "IBM Plex Mono", monospace; font-size: .85rem;
+    color: var(--accent); font-weight: 500; letter-spacing: .05em;
+  }
+  h3 { font-size: 1.05rem; font-weight: 600; margin: 1.8rem 0 .6rem; }
+  p { margin: 0 0 1rem; }
+  a { color: var(--accent-ink); }
+  .lede { font-size: 1.02rem; }
+  code, .mono { font-family: "IBM Plex Mono", ui-monospace, monospace; font-size: .86em; }
+  code { background: var(--code-bg); padding: .12em .38em; border-radius: 3px; }
+  pre.cmd {
+    background: var(--code-bg); border: 1px solid var(--line); border-radius: 6px;
+    padding: .85rem 1rem; overflow-x: auto; font-family: "IBM Plex Mono", monospace;
+    font-size: .84rem; line-height: 1.55; margin: .8rem 0 1.2rem;
+  }
+  pre.cmd code { background: none; padding: 0; }
+  .diagram {
+    border: 1px solid var(--line); border-radius: 8px; background: var(--surface);
+    padding: 1.1rem; overflow-x: auto; margin: 1.2rem 0 1.6rem;
+  }
+  .diagram figcaption {
+    font-size: .78rem; color: var(--ink-soft); letter-spacing: .06em;
+    text-transform: uppercase; margin-bottom: .6rem; font-weight: 600;
+  }
+  table { border-collapse: collapse; width: 100%; font-size: .9rem; margin: 1rem 0 1.4rem; }
+  .tablewrap { overflow-x: auto; }
+  th { text-align: left; font-size: .74rem; letter-spacing: .09em; text-transform: uppercase;
+       color: var(--ink-soft); font-weight: 600; padding: .5rem .7rem; border-bottom: 2px solid var(--line); }
+  td { padding: .55rem .7rem; border-bottom: 1px solid var(--line); vertical-align: top; }
+  td.mono, td code { font-variant-numeric: tabular-nums; }
+  .chip {
+    display: inline-block; font-family: "IBM Plex Mono", monospace; font-size: .72rem;
+    font-weight: 500; letter-spacing: .08em; padding: .14em .55em; border-radius: 3px;
+    border: 1px solid currentColor;
+  }
+  .chip.pass { color: var(--accent-ink); background: var(--chip-pass-bg); }
+  .chip.warn { color: var(--amber); background: var(--chip-warn-bg); }
+  .chip.crit { color: var(--crit); background: var(--chip-crit-bg); }
+  .callout {
+    border-left: 3px solid var(--accent); background: var(--surface);
+    padding: .9rem 1.1rem; border-radius: 0 6px 6px 0; margin: 1.2rem 0 1.4rem;
+    font-size: .95rem;
+  }
+  .callout.amber { border-left-color: var(--amber); }
+  .callout strong:first-child { color: var(--accent-ink); }
+  .callout.amber strong:first-child { color: var(--amber); }
+  ol.batches { counter-reset: b; list-style: none; padding: 0; margin: 1.2rem 0; }
+  ol.batches > li {
+    counter-increment: b; position: relative; padding: 0 0 1.4rem 3.1rem;
+    border-left: 1px solid var(--line); margin-left: 1rem;
+  }
+  ol.batches > li:last-child { border-left-color: transparent; }
+  ol.batches > li::before {
+    content: "B" counter(b, decimal); position: absolute; left: -1.05rem; top: -.1rem;
+    font-family: "IBM Plex Mono", monospace; font-size: .74rem; font-weight: 500;
+    background: var(--paper); border: 1.5px solid var(--accent); color: var(--accent-ink);
+    width: 2rem; height: 2rem; border-radius: 50%; display: flex;
+    align-items: center; justify-content: center;
+  }
+  ol.batches { counter-reset: b -1; }
+  ol.batches h3 { margin: .1rem 0 .4rem; }
+  ol.batches .dur { font-size: .78rem; color: var(--ink-soft); font-family: "IBM Plex Mono", monospace; margin-left: .5rem; }
+  ul { padding-left: 1.3rem; margin: 0 0 1rem; }
+  li { margin-bottom: .35rem; }
+  .kv { display: grid; grid-template-columns: max-content 1fr; gap: .3rem 1.2rem; font-size: .92rem; margin: 1rem 0 1.4rem; }
+  .kv dt { font-weight: 600; color: var(--ink-soft); }
+  .kv dd { margin: 0; }
+  .toc {
+    background: var(--surface); border: 1px solid var(--line); border-radius: 8px;
+    padding: 1.1rem 1.3rem; margin: 2rem 0; font-size: .9rem;
+  }
+  .toc ol { margin: .4rem 0 0; padding-left: 1.4rem; column-count: 2; column-gap: 2.5rem; }
+  @media (max-width: 620px) { .toc ol { column-count: 1; } }
+  .toc a { text-decoration: none; }
+  .toc a:hover { text-decoration: underline; }
+  footer { margin-top: 4rem; padding-top: 1.4rem; border-top: 3px double var(--line);
+           font-size: .82rem; color: var(--ink-soft); }
+  @media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto !important; } }
+</style>
+
+<div class="wrap">
+<header class="masthead">
+  <p class="eyebrow">Design Document · v2 · Real-Corpus Validated</p>
+  <h1>IQR — Intelligent Quality Review for SOX 404 Controls</h1>
+  <p class="standfirst">A compiled-plan agentic platform that validates SOX 404 control evidence
+  packages end-to-end: agents reason, deterministic tools compute, and a frozen SME-approved plan
+  governs every run. Model-agnostic by construction — Claude in the lab, DaVinci in production.</p>
+</header>
+
+<nav class="toc">
+  <strong>Contents</strong>
+  <ol>
+    <li><a href="#thesis">Why this shape of Agentic AI</a></li>
+    <li><a href="#arch">System architecture</a></li>
+    <li><a href="#model">The model seat &amp; DaVinci</a></li>
+    <li><a href="#ingest">Evidence ingestion</a></li>
+    <li><a href="#exec">Check execution workflow</a></li>
+    <li><a href="#poc">POC results on real evidence</a></li>
+    <li><a href="#gov">Governance &amp; auditability</a></li>
+    <li><a href="#deploy">Step-by-step HP deployment</a></li>
+    <li><a href="#it">IT &amp; security posture</a></li>
+    <li><a href="#roadmap">Roadmap</a></li>
+  </ol>
+</nav>
+
+<h2 id="thesis"><span class="num">01</span>Why this shape of Agentic AI</h2>
+<p class="lede">Most "AI for controls testing" fails review for one reason: the model both finds
+the number and judges the number, so nobody can replay why a control passed. IQR splits those
+roles permanently:</p>
+<ul>
+  <li><strong>Plans govern.</strong> What gets checked is compiled once per control from the SOX 404
+  document, reviewed by an SME, then frozen and versioned. The runtime executes the plan; it never
+  improvises scope.</li>
+  <li><strong>Tools compute.</strong> Every number, timestamp, and email fact comes from a
+  deterministic tool (<code>cell_read</code>, <code>recompute</code>, <code>timestamp</code>,
+  <code>email_parse</code>, <code>ocr_read</code>) that returns a citation to the exact cell or line.
+  Numeric checks touch no model at all — an invariant test asserts the model-call counter stays at zero.</li>
+  <li><strong>Agents reason.</strong> Where judgment is needed — which screenshot ties to which cell,
+  whether approval language is an approval — a tool-using agent decides, and every tool call it makes
+  lands in the run ledger.</li>
+</ul>
+<p>The result a reviewer sees is not "the AI said pass." It is: <em>delta recomputed as 8.28e-06
+against tolerance 0.01 from <code>Recon!B30339</code>; approval parsed from message line 1;
+preparer ≠ approver per <code>Summary!D14</code> vs the sender header.</em> Every claim carries
+its evidence address.</p>
+
+<h2 id="arch"><span class="num">02</span>System architecture</h2>
+<p>IQR has two phases with different trust models. <strong>Design time</strong> uses the LLM freely —
+its output is reviewed by a human before it can ever govern a run. <strong>Run time</strong> is
+deterministic-first — the LLM only reasons inside tool-using agents whose every step is logged.</p>
+
+<figure class="diagram">
+  <figcaption>Two-phase architecture</figcaption>
+<pre class="mermaid">
+flowchart TB
+  subgraph DT["DESIGN TIME - once per control"]
+    A["SOX 404 control document (.docx)"] --> B["Plan Compiler (LLM-assisted)"]
+    B --> C["Draft Validation Plan (JSON)"]
+    C --> D{"SME review"}
+    D -->|approve| E["Frozen Plan vX.Y.Z (immutable, versioned)"]
+    D -->|revise| B
+  end
+  subgraph RT["RUN TIME - every close period"]
+    F["GRC evidence package"] --> G["Ingest: unpack + hash + extract"]
+    G --> H["Evidence Graph (cells, emails, images, docs)"]
+    E --> I["LangGraph executor"]
+    H --> I
+    I --> J["Verdict + Findings with citations"]
+    J --> K["Audit Pack + Run Ledger"]
+  end
+</pre>
+</figure>
+
+<div class="kv">
+  <dt>Runtime stack</dt><dd>Python 3.12 · LangGraph · openpyxl / pyxlsb / extract-msg / python-docx · Tesseract OCR · FastAPI console on 127.0.0.1</dd>
+  <dt>Storage</dt><dd>Content-addressed evidence store (SHA-256 named blobs, immutable) · versioned plan store · append-only JSONL run ledgers</dd>
+  <dt>Model seat</dt><dd>Single adapter interface; backend chosen by environment (<code>stub</code> · Claude · <strong>DaVinci</strong>) — see §03</dd>
+</div>
+
+<h2 id="model"><span class="num">03</span>The model seat &amp; DaVinci</h2>
+<p>The platform does not depend on any specific LLM vendor. One adapter
+(<code>iqr/agents/model_client.py</code>) exposes <code>complete(system, prompt) → JSON</code>,
+and the concrete backend is picked by environment variables at startup:</p>
+
+<figure class="diagram">
+  <figcaption>Model fallback chain — configured per environment</figcaption>
+<pre class="mermaid">
+flowchart LR
+  P["Agent runtime"] --> Q{"MODEL_NAME env"}
+  Q -->|"HP production"| R["DaVinci endpoint (HP-internal)"]
+  Q -->|"lab / POC"| S["Claude API"]
+  Q -->|"offline / CI"| T["Deterministic stub"]
+  R -.->|on error| T
+  S -.->|on error| T
+</pre>
+</figure>
+
+<ul>
+  <li><strong>The POC you demo runs with zero external calls</strong> — the stub answers every agent
+  decision deterministically, which is why the whole eval suite runs on an air-gapped machine.</li>
+  <li><strong>On the HP machine, only the endpoint URL and key change.</strong> No code change: set
+  <code>MODEL_NAME=davinci</code> plus the endpoint in <code>.env</code>. The fallback chain means a
+  model outage degrades to stub behavior instead of blocking the close calendar.</li>
+  <li><strong>The ledger records which backend answered every call</strong>, so a run is attributable
+  to its model version — an audit requirement, not a nicety.</li>
+</ul>
+<div class="callout"><strong>Key claim for stakeholders:</strong> the LLM is consulted in exactly two
+places — compiling draft plans (human-reviewed before use) and reasoning inside logged, tool-using
+check agents. All arithmetic, all extraction, and all verdict mechanics are deterministic Python that
+runs identically with any backend, including none.</div>
+
+<h2 id="ingest"><span class="num">04</span>Evidence ingestion</h2>
+<p>Real GRC packages are nested: an Outlook <code>.msg</code> containing a ZIP containing macro
+workbooks; a 404 Word document with a 184&nbsp;MB Excel workbook embedded as an OLE object; binary
+<code>.xlsb</code> workbooks; screenshots inside everything. The ingester walks all of it:</p>
+
+<figure class="diagram">
+  <figcaption>Real nesting from control 10032 — walked automatically, zero errors</figcaption>
+<pre class="mermaid">
+flowchart TB
+  M["RE April FY26 Consolidation Recon.msg — 34 MB"] --> C1["Control Reviewer Checklist.docx"]
+  M --> Z["OOC3.zip — 33 MB"]
+  M --> I1["signature images"]
+  Z --> W1["BPC Analysis Report.xlsm — AFO timestamps, stat checks"]
+  Z --> W2["BPC Consol TB vs ODW.xlsm — 336k-cell recon"]
+  Z --> W3["MEC Recon Doc.xlsb — reviewer checklist tabs"]
+</pre>
+</figure>
+
+<ul>
+  <li><strong>Content-addressed store:</strong> every leaf is SHA-256 hashed and stored immutably;
+  re-ingesting identical bytes is a no-op and citations are stable by construction.</li>
+  <li><strong>Format coverage:</strong> <code>.xlsx/.xlsm</code> (values + formulas + embedded images),
+  <code>.xlsb</code>, <code>.docx</code> (paragraphs + embedded images + OLE embeddings),
+  <code>.msg</code> and <code>.eml</code> (headers, body lines, attachments), images (OCR).</li>
+  <li><strong>Big-file streaming:</strong> files over 50&nbsp;MB are hashed and stored in chunks and
+  their containers walked from disk; workbooks over 60&nbsp;MB stream values in read-only mode with an
+  explicit truncation sentinel rather than a silent cap.</li>
+  <li><strong>Honest errors:</strong> unreadable artifacts become recorded errors on the graph
+  (e.g. a SharePoint link placeholder posing as an attachment), never silent skips.</li>
+</ul>
+
+<h2 id="exec"><span class="num">05</span>Check execution workflow</h2>
+<p>Every run executes the same frozen LangGraph topology — the topology itself is versioned and
+hash-signed so releases can diff it:</p>
+
+<figure class="diagram">
+  <figcaption>Run topology v1.0.0 — identical every run</figcaption>
+<pre class="mermaid">
+flowchart LR
+  ST(("start")) --> IN["ingest"] --> MA["match evidence to plan"]
+  MA --> CK1["check d1..dN (parallel fan-out)"]
+  CK1 --> VE["verify"] --> AD["adjudicate"] --> EN(("end"))
+</pre>
+</figure>
+
+<div class="tablewrap"><table>
+  <tr><th>Check type</th><th>Who computes</th><th>Example (real, control 10032)</th></tr>
+  <tr><td><strong>numeric</strong></td><td>Pure Python — model-free, invariant-tested</td>
+      <td>BPC grand total vs ODW grand total within 0.01 (<code>Recon!B30339</code> vs <code>G53656</code>)</td></tr>
+  <tr><td><strong>temporal</strong></td><td>Agent + <code>timestamp</code> tool</td>
+      <td>Approval postdates certified WEBI run — 8:29&nbsp;PM GMT (<code>Summary!D13</code>) vs email header date</td></tr>
+  <tr><td><strong>signoff</strong></td><td>Agent + <code>email_parse</code> tool</td>
+      <td>SoD: preparer <code>Summary!D14</code> ≠ approver (.msg sender); approval language on line 1</td></tr>
+  <tr><td><strong>vision</strong></td><td>Agent + <code>ocr_read</code> tool</td>
+      <td>Screenshot provenance: "SAP BI Launch Pad", certified host, report name</td></tr>
+</table></div>
+<p>Missing required evidence becomes a <span class="chip warn">GAP</span>, never a silent pass.
+Artifacts present but not expected become observations — except items the SME excluded in the plan
+(e.g. tabs annotated "not part of SOX control"), which are respected as out of scope.</p>
+
+<h2 id="poc"><span class="num">06</span>POC results on real evidence</h2>
+<p>The POC ingests the actual April/Q2&nbsp;FY26 evidence packages for three controls. Control
+10032 is fully validated end-to-end; every claim below carries its real citation
+(full detail: <code>docs/REAL_VALIDATION.md</code>).</p>
+
+<div class="tablewrap"><table>
+  <tr><th>Control 10032 check</th><th>Verdict</th><th>Citation</th></tr>
+  <tr><td>BPC↔ODW grand totals agree</td><td><span class="chip pass">PASS</span> 8.28e-06 ≤ 0.01</td><td class="mono">Recon!B30339 · G53656</td></tr>
+  <tr><td>Delta column sums ≈ 0 both sides</td><td><span class="chip pass">PASS</span></td><td class="mono">Recon!D2 · I2</td></tr>
+  <tr><td>Stat accounts net to zero</td><td><span class="chip pass">PASS</span> −23,514,570.28 + 23,514,570.28</td><td class="mono">Stat acct check!D5,E5</td></tr>
+  <tr><td>Certified run before approval</td><td><span class="chip pass">PASS</span> GMT stated in-cell</td><td class="mono">Summary!D13 vs .msg date</td></tr>
+  <tr><td>Segregation of duties</td><td><span class="chip pass">PASS</span> preparer ≠ approver</td><td class="mono">Summary!D14 vs .msg sender</td></tr>
+  <tr><td>Approval language</td><td><span class="chip pass">PASS</span></td><td class="mono">.msg body line 1</td></tr>
+  <tr><td>Reviewer checklist attached</td><td><span class="chip pass">PRESENT</span> nested in .msg</td><td class="mono">leaf listing</td></tr>
+</table></div>
+
+<p><strong>Control 10075:</strong> 6-email sign-off chain parsed with line-level citations —
+including the disclosure "One exception noted and immediately resolved"; 44-tab IPE workbook
+ingested; 245 images extracted. <strong>Control 23024:</strong> the 404 document's 184&nbsp;MB
+embedded rebate workbook surfaced as first-class evidence (streaming ingest).</p>
+
+<div class="callout amber"><strong>Honest limits, stated up front:</strong> OCR reads provenance
+(system banners, hostnames, report names) reliably but not small-font digits in screenshots — numeric
+ties come from certified workbook cells by design. Timestamp timezone semantics are pinned per
+control by the SME in the plan, not guessed. Plan compilation from free-text 404s requires the
+production model; the offline stub compiles structured documents only.</div>
+
+<h2 id="gov"><span class="num">07</span>Governance &amp; auditability</h2>
+<ul>
+  <li><strong>Frozen plans:</strong> approving a plan writes an immutable versioned file; re-approving
+  the same version is an error. Runtime refuses unapproved plans.</li>
+  <li><strong>Run ledger:</strong> every run appends JSONL events — topology hash, model identity,
+  every tool call with args and results, every agent conclusion, the adjudication.
+  <code>python -m iqr.cli explain &lt;run_id&gt;</code> replays the entire decision trace.</li>
+  <li><strong>Eval gates:</strong> a fixture harness with five gate metrics (false-pass rate zero,
+  citation coverage, gap detection, scope respect, determinism) must pass before any plan or code
+  change ships. The POC suite is 36 tests, all green.</li>
+  <li><strong>Audit pack:</strong> each run assembles verdict + findings + citations + evidence
+  hashes into a reviewable pack.</li>
+</ul>
+
+<h2 id="deploy"><span class="num">08</span>Step-by-step HP deployment</h2>
+<p>Sequenced so every batch has a hard gate before the next. Nothing needs admin rights;
+nothing calls outside the machine except the approved DaVinci endpoint.</p>
+
+<ol class="batches">
+  <li>
+    <h3>Pre-flight <span class="dur">~30 min</span></h3>
+    <p>Verify <code>python --version</code> ≥ 3.12 (python.org user install via IT self-service if
+    absent). Check proxy (<code>netsh winhttp show proxy</code>). Canary
+    <code>pip install requests</code>; if corporate SSL interception blocks it:
+    <code>pip config set global.cert &lt;HP-CA-bundle.pem&gt;</code>. Confirm DaVinci endpoint URL + key issuance.</p>
+  </li>
+  <li>
+    <h3>Install + offline smoke <span class="dur">~1 hr · zero keys</span></h3>
+    <pre class="cmd"><code>git clone &lt;repo&gt; &amp;&amp; cd IQR
+python -m venv .venv &amp;&amp; .venv/bin/pip install -e .
+# Tesseract: UB-Mannheim installer to %LOCALAPPDATA% (no admin)
+.venv/bin/pytest -q            # gate: 36/36
+.venv/bin/python -m iqr.cli eval   # gate: all five metrics green</code></pre>
+    <p>This proves the machine before any real data or key touches it.</p>
+  </li>
+  <li>
+    <h3>Keys + model chain <span class="dur">~30 min</span></h3>
+    <pre class="cmd"><code>cp .env.example .env    # add DaVinci URL + key, MODEL_NAME=davinci
+python -m iqr.cli testmodel   # ledger records which backend answered</code></pre>
+  </li>
+  <li>
+    <h3>Real-corpus rehearsal <span class="dur">half a day</span></h3>
+    <p>Drop one real GRC package into <code>data/input/</code>; run the ingestion probes in
+    <code>tests/real/</code>. Gate: every leaf hashed, nesting walked, errors empty or explained.
+    This exact rehearsal has already been performed — expected outputs are in
+    <code>docs/REAL_VALIDATION.md</code>.</p>
+  </li>
+  <li>
+    <h3>Plan compilation + SME freeze <span class="dur">~1 hr per control</span></h3>
+    <pre class="cmd"><code>python -m iqr.cli compile &lt;404.docx&gt; C10032 monthly
+# SME reviews draft JSON: pins timestamp anchors + timezones,
+# tolerances, scope exclusions, authoritative artifacts
+python -m iqr.cli approve C10032 "&lt;sme name&gt;"</code></pre>
+    <p>Order: 10032 → 23024 → 10075.</p>
+  </li>
+  <li>
+    <h3>Shadow cycle <span class="dur">one close period</span></h3>
+    <p>Run <code>python -m iqr.cli run &lt;control&gt; &lt;package&gt;</code> beside the human
+    reviewer each close. Compare verdicts; disagreements feed the exception queue and refine plans
+    (version bump + re-approval). Gate: eval metrics on real packages decide graduation to Assist mode.</p>
+  </li>
+  <li>
+    <h3>Productionize</h3>
+    <p>Service-ify via Task Scheduler / nssm; move <code>data/</code> to a backed-up local drive
+    (never a cloud-synced folder); add the SharePoint/mailbox connector behind the existing resolver
+    interface; stand up Golden Library governance — eval gate + SME sign-off before any plan ships.</p>
+  </li>
+</ol>
+
+<h2 id="it"><span class="num">09</span>IT &amp; security posture</h2>
+<div class="kv">
+  <dt>Network</dt><dd>Console binds 127.0.0.1 only; no inbound ports; outbound traffic only to the approved DaVinci endpoint. Offline mode makes zero network calls.</dd>
+  <dt>Telemetry</dt><dd>None. No analytics, no phone-home. (This is why the console is FastAPI + static HTML rather than Streamlit.)</dd>
+  <dt>Dependencies</dt><dd>Mainstream, auditable Python packages: LangGraph, openpyxl, pyxlsb, extract-msg, python-docx, pytesseract, FastAPI, pydantic.</dd>
+  <dt>Data at rest</dt><dd>Evidence blobs and ledgers stay on the local machine under <code>data/</code>; nothing is uploaded anywhere.</dd>
+  <dt>Privilege</dt><dd>User-mode installs only; no admin rights at any step.</dd>
+</div>
+
+<h2 id="roadmap"><span class="num">10</span>Roadmap</h2>
+<ul>
+  <li><strong>Parsed-artifact cache</strong> (hash-keyed) so repeat runs skip re-extraction.</li>
+  <li><strong>SharePoint / mailbox connector</strong> — 10075's chain references SharePoint-hosted files; fetch them through the resolver with the same hashing custody.</li>
+  <li><strong>PDF ingestion</strong> (pypdf + OCR fallback) for image-only GRC artifacts.</li>
+  <li><strong>Vision-model tie-outs</strong> where DaVinci's multimodal endpoint can read screenshot tables OCR cannot — held behind the same tool-citation contract.</li>
+  <li><strong>Golden Library</strong> of approved plans across the SOX program, governed by the eval gate.</li>
+</ul>
+
+<footer>
+  IQR design document · validated against real April/Q2 FY26 evidence packages ·
+  companion files in-repo: <span class="mono">docs/REAL_VALIDATION.md</span>,
+  <span class="mono">docs/DEPLOYMENT.md</span>, <span class="mono">tests/real/</span>
+</footer>
+</div>

@@ -1,0 +1,355 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>IQR Console</title>
+<style>
+  :root {
+    --paper:#FAF9F5; --surface:#F1EFE8; --ink:#1C2321; --soft:#5A6862;
+    --line:#DCD8CC; --accent:#0E6E5C; --accent-ink:#0A5546; --amber:#8A5A17;
+    --crit:#A63A3A; --pass-bg:#E3EFE9; --warn-bg:#F5EBD8; --crit-bg:#F3E2E2;
+    --code:#ECEAE1;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --paper:#131917; --surface:#1B2320; --ink:#E8EDE9; --soft:#9FAFA8;
+      --line:#2C3833; --accent:#3FA98C; --accent-ink:#5FC4A8; --amber:#D9A24E;
+      --crit:#D97C7C; --pass-bg:#1D332B; --warn-bg:#332916; --crit-bg:#33201F;
+      --code:#1F2A26; }
+  }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--paper); color:var(--ink);
+    font:15px/1.55 "IBM Plex Sans","Segoe UI",system-ui,sans-serif; }
+  .mono { font-family:"IBM Plex Mono",ui-monospace,monospace; }
+  header { display:flex; align-items:center; gap:1.2rem; padding:.9rem 1.4rem;
+    border-bottom:2px solid var(--line); }
+  header h1 { font-size:1.05rem; margin:0; letter-spacing:.02em; }
+  header h1 span { color:var(--accent); }
+  nav { display:flex; gap:.25rem; margin-left:auto; }
+  nav button { background:none; border:none; color:var(--soft); font:inherit;
+    padding:.45rem .8rem; border-radius:6px; cursor:pointer; }
+  nav button.on { background:var(--surface); color:var(--ink); font-weight:600; }
+  nav button:focus-visible { outline:2px solid var(--accent); }
+  main { max-width:1060px; margin:0 auto; padding:1.6rem 1.4rem 4rem; }
+  h2 { font-size:1.25rem; margin:0 0 .9rem; }
+  h3 { font-size:.98rem; margin:1.4rem 0 .5rem; }
+  .grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(300px,1fr)); gap:1rem; }
+  .card { border:1px solid var(--line); border-radius:10px; background:var(--surface);
+    padding:1rem 1.1rem; }
+  .card h3 { margin:.1rem 0 .35rem; font-size:1.02rem; }
+  .card .desc { color:var(--soft); font-size:.88rem; margin:0 0 .7rem; }
+  .tag { display:inline-block; font-size:.7rem; letter-spacing:.07em; text-transform:uppercase;
+    color:var(--soft); border:1px solid var(--line); border-radius:4px; padding:.1em .5em; margin-right:.4rem; }
+  button.primary { background:var(--accent); color:#fff; border:none; border-radius:7px;
+    font:inherit; font-weight:600; padding:.55rem 1.1rem; cursor:pointer; }
+  button.primary:disabled { opacity:.5; cursor:default; }
+  button.ghost { background:none; border:1px solid var(--line); border-radius:7px;
+    font:inherit; padding:.5rem 1rem; cursor:pointer; color:var(--ink); }
+  .evlist { margin:.6rem 0 0; padding:0; list-style:none; }
+  .evlist li { display:flex; gap:.6rem; padding:.5rem .2rem; border-top:1px solid var(--line);
+    font-size:.9rem; align-items:baseline; }
+  .evlist .req { font-size:.68rem; letter-spacing:.06em; color:var(--crit); font-weight:600; }
+  .evlist .opt { font-size:.68rem; letter-spacing:.06em; color:var(--soft); }
+  .evlist .hint { color:var(--soft); font-size:.8rem; }
+  .drop { border:2px dashed var(--line); border-radius:10px; padding:1.6rem; text-align:center;
+    color:var(--soft); margin:.8rem 0; }
+  .drop.hot { border-color:var(--accent); color:var(--accent-ink); }
+  input[type=text] { width:100%; font:inherit; padding:.5rem .7rem; border:1px solid var(--line);
+    border-radius:7px; background:var(--paper); color:var(--ink); }
+  .row { display:flex; gap:.8rem; align-items:center; flex-wrap:wrap; margin:.6rem 0; }
+  .chip { display:inline-block; font-family:"IBM Plex Mono",monospace; font-size:.72rem;
+    font-weight:500; letter-spacing:.07em; padding:.14em .55em; border-radius:4px;
+    border:1px solid currentColor; }
+  .chip.pass { color:var(--accent-ink); background:var(--pass-bg); }
+  .chip.gap, .chip.warn { color:var(--amber); background:var(--warn-bg); }
+  .chip.fail, .chip.high { color:var(--crit); background:var(--crit-bg); }
+  .ledger { background:var(--code); border:1px solid var(--line); border-radius:8px;
+    padding:.8rem 1rem; font-family:"IBM Plex Mono",monospace; font-size:.78rem;
+    max-height:340px; overflow:auto; white-space:pre-wrap; }
+  table { border-collapse:collapse; width:100%; font-size:.88rem; margin:.6rem 0 1rem; }
+  th { text-align:left; font-size:.7rem; letter-spacing:.08em; text-transform:uppercase;
+    color:var(--soft); padding:.45rem .6rem; border-bottom:2px solid var(--line); }
+  td { padding:.5rem .6rem; border-bottom:1px solid var(--line); vertical-align:top; }
+  .muted { color:var(--soft); font-size:.85rem; }
+  .banner { border-left:3px solid var(--accent); background:var(--surface);
+    padding:.7rem 1rem; border-radius:0 8px 8px 0; margin:.8rem 0; font-size:.9rem; }
+  .banner.err { border-left-color:var(--crit); }
+  textarea { width:100%; font:inherit; padding:.5rem .7rem; border:1px solid var(--line);
+    border-radius:7px; background:var(--paper); color:var(--ink); min-height:70px; }
+  a { color:var(--accent-ink); }
+  .steps { display:flex; gap:.4rem; margin:0 0 1.2rem; flex-wrap:wrap; }
+  .steps span { font-size:.75rem; letter-spacing:.05em; padding:.25em .7em;
+    border-radius:99px; border:1px solid var(--line); color:var(--soft); }
+  .steps span.now { border-color:var(--accent); color:var(--accent-ink); font-weight:600; }
+</style>
+</head>
+<body>
+<header>
+  <h1>IQR <span>·</span> SOX 404 Validation Console</h1>
+  <nav id="nav"></nav>
+</header>
+<main id="main"></main>
+
+<script>
+const $ = (s, el=document) => el.querySelector(s);
+const api = async (path, opts) => {
+  const r = await fetch(path, opts);
+  if (!r.ok) throw new Error((await r.text()).slice(0, 300));
+  return r.json();
+};
+const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+
+const TABS = ["Run a control", "Live run", "Evaluation", "Governance", "How it works"];
+let state = { tab: 0, controls: [], picked: null, packageRef: "", runId: null,
+              ledgerN: 0, runStatus: null, poll: null };
+
+function nav() {
+  $("#nav").innerHTML = TABS.map((t, i) =>
+    `<button class="${i === state.tab ? "on" : ""}" onclick="go(${i})">${t}</button>`).join("");
+}
+window.go = (i) => { state.tab = i; render(); };
+
+async function loadControls() {
+  try { state.controls = await api("/api/controls"); } catch (e) { state.controls = []; }
+}
+
+/* ---------------- tab 0: run wizard ---------------- */
+function wizard() {
+  const c = state.picked;
+  let html = `<h2>Run a control validation</h2>
+  <div class="steps">
+    <span class="${!c ? "now" : ""}">1 · Choose control</span>
+    <span class="${c && !state.packageRef ? "now" : ""}">2 · Provide evidence</span>
+    <span class="${c && state.packageRef ? "now" : ""}">3 · Run</span>
+  </div>`;
+  if (!c) {
+    html += `<p class="muted">Each card is a frozen, SME-approved validation plan.
+      Pick the control you are validating this period.</p><div class="grid">`;
+    for (const ctl of state.controls) {
+      html += `<div class="card">
+        <h3>${esc(ctl.control_id)}</h3>
+        <p class="desc">${esc(ctl.description).slice(0, 140)}</p>
+        <div><span class="tag">${esc(ctl.frequency)}</span>
+             <span class="tag">plan v${esc(ctl.version)}</span>
+             <span class="tag">${ctl.checks.length} checks</span></div>
+        <div style="margin-top:.8rem"><button class="primary" onclick="pick('${esc(ctl.control_id)}')">Select</button></div>
+      </div>`;
+    }
+    if (!state.controls.length) html += `<p class="banner err">No approved plans found. Approve a plan first (Governance tab or CLI).</p>`;
+    html += `</div>`;
+    return html;
+  }
+  html += `<div class="card"><h3>${esc(c.control_id)} · plan v${esc(c.version)}</h3>
+    <p class="desc">${esc(c.description)}</p>
+    <h3>What this plan expects you to provide</h3>
+    <p class="muted">Upload the period's GRC evidence. The matcher finds each item by name -
+    the hints below show what it looks for. Anything required and absent becomes an
+    honest <b>gap</b>, never a silent pass.</p>
+    <ul class="evlist">` +
+    c.expected_evidence.map(e => `<li>
+        <span class="${e.required ? "req" : "opt"}">${e.required ? "REQUIRED" : "OPTIONAL"}</span>
+        <span>${esc(e.description)}<br><span class="hint mono">matches: ${esc(e.match_hints.join(", "))}</span></span>
+      </li>`).join("") + `</ul>`;
+  if (c.scope_exclusions.length)
+    html += `<h3>Out of scope by plan</h3><ul class="evlist">` +
+      c.scope_exclusions.map(x => `<li><span class="opt">EXCLUDED</span><span>${esc(x.reason)}</span></li>`).join("") + `</ul>`;
+  html += `<h3>Provide the evidence package</h3>
+    <div class="drop" id="drop">Drag files here, or
+      <label style="text-decoration:underline;cursor:pointer">browse<input type="file" id="fpick" multiple style="display:none"></label>
+      <div class="muted" id="dropmsg"></div></div>
+    <div class="row"><span class="muted">— or a folder already on this machine —</span></div>
+    <div class="row"><input type="text" id="pref" placeholder="/path/to/evidence_folder"
+        value="${esc(state.packageRef)}">
+      <button class="ghost" onclick="setRef()">Use folder</button></div>
+    <div class="row" style="margin-top:1rem">
+      <button class="primary" id="runbtn" ${state.packageRef ? "" : "disabled"} onclick="startRun()">Run validation</button>
+      <span class="muted">${state.packageRef ? "package: " + esc(state.packageRef) : "no package yet"}</span>
+      <button class="ghost" onclick="state.picked=null;state.packageRef='';render()">Back</button>
+    </div></div>`;
+  return html;
+}
+window.pick = id => { state.picked = state.controls.find(x => x.control_id === id); render(); };
+window.setRef = () => { state.packageRef = $("#pref").value.trim(); render(); };
+
+async function uploadFiles(files) {
+  $("#dropmsg").textContent = `Uploading ${files.length} file(s)…`;
+  const fd = new FormData();
+  for (const f of files) fd.append("files", f);
+  try {
+    const r = await api("/api/upload", { method: "POST", body: fd });
+    state.packageRef = r.package_ref; render();
+  } catch (e) { $("#dropmsg").textContent = "Upload failed: " + e.message; }
+}
+
+window.startRun = async () => {
+  $("#runbtn").disabled = true;
+  try {
+    const r = await api("/api/runs", { method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({ control_id: state.picked.control_id, package_ref: state.packageRef })});
+    state.runId = r.run_id; state.ledgerN = 0; state.runStatus = null; state.tab = 1;
+    render(); pollRun();
+  } catch (e) { alert("Run failed to start: " + e.message); $("#runbtn").disabled = false; }
+};
+
+/* ---------------- tab 1: live run ---------------- */
+function fmtEvent(ev) {
+  const t = ev.event;
+  if (t === "run_start") return `RUN START ${ev.control_id} plan v${ev.plan_version} model=${ev.model || "?"}`;
+  if (t === "ingest") return `INGEST leaves=${ev.leaves} cells=${ev.cells} emails=${ev.emails} images=${ev.images}`;
+  if (t === "match") return `MATCH matched=[${(ev.matched||[]).join(",")}] missing=[${(ev.missing||[]).join(",")}]`;
+  if (t === "anomaly") return `⚑ ANOMALY[${ev.severity}] ${ev.detector}: ${ev.detail}`;
+  if (t === "sentinel_done") return `SENTINEL done: ${ev.total} anomalies (${ev.high} high, ${ev.warn} warn)`;
+  if (t === "check_start") return `CHECK ${ev.check_id} (${ev.check_type}) …`;
+  if (t === "tool_call") return `  tool ${ev.tool} → ${JSON.stringify(ev.result || {}).slice(0, 110)}`;
+  if (t === "agent_final") return `  agent[${ev.model || "?"}] concluded in ${ev.steps} steps`;
+  if (t === "check_done") return `CHECK ${ev.check_id} → ${String(ev.verdict).toUpperCase()}`;
+  if (t === "check_error") return `CHECK ${ev.check_id} ERROR: ${ev.error}`;
+  if (t === "verify") return `VERIFY ${ev.check_id} agree=${ev.agree}: ${(ev.note||"").slice(0,90)}`;
+  if (t === "adjudicate") return `ADJUDICATE → ${ev.result} (gaps=${(ev.gaps||[]).length}, exceptions=${(ev.exceptions||[]).length})`;
+  if (t === "run_end") return `RUN END → ${String(ev.result).toUpperCase()}`;
+  return `${t} ${JSON.stringify(ev).slice(0, 120)}`;
+}
+
+async function pollRun() {
+  clearTimeout(state.poll);
+  if (!state.runId) return;
+  try {
+    const evs = await api(`/api/runs/${state.runId}/ledger?after=${state.ledgerN}`);
+    if (evs.length && state.tab === 1) {
+      const box = $("#ledger");
+      if (box) { evs.forEach(e => box.textContent += fmtEvent(e) + "\n"); box.scrollTop = box.scrollHeight; }
+      state.ledgerN += evs.length;
+    }
+    state.runStatus = await api(`/api/runs/${state.runId}`);
+    if (state.runStatus.status === "running") state.poll = setTimeout(pollRun, 1500);
+    else if (state.tab === 1) render();
+  } catch (e) { state.poll = setTimeout(pollRun, 3000); }
+}
+
+function liveRun() {
+  if (!state.runId) return `<h2>Live run</h2><p class="muted">No run yet — start one from “Run a control”.</p>`;
+  const st = state.runStatus || { status: "running" };
+  let html = `<h2>Run <span class="mono">${esc(state.runId)}</span></h2>
+    <p class="muted">Every line below is a ledger event — the same replayable record
+    <span class="mono">iqr.cli explain</span> reads. Nothing happens off the record.</p>
+    <div class="ledger" id="ledger"></div>`;
+  if (st.status === "running") html += `<p class="banner">Running… ingest of large real packages takes minutes; events stream as they happen.</p>`;
+  if (st.status === "error") html += `<p class="banner err">Run failed: ${esc(st.error)}</p>`;
+  if (st.status === "done" && st.verdict) {
+    const v = st.verdict;
+    html += `<h3>Verdict: <span class="chip ${v.result === "pass" ? "pass" : v.result === "fail" ? "fail" : "warn"}">${esc(v.result)}</span></h3>
+    <table><tr><th>Check</th><th>Verdict</th><th>Detail</th><th>Citations</th></tr>` +
+    v.findings.map(f => `<tr><td class="mono">${esc(f.check_id)}</td>
+      <td><span class="chip ${esc(f.verdict)}">${esc(f.verdict)}</span>${f.verified ? " ✓verified" : ""}</td>
+      <td>${esc(f.detail).slice(0, 220)}</td>
+      <td class="mono" style="font-size:.75rem">${f.citations.map(c =>
+          esc(c.kind === "cell" ? `${c.sheet}!${c.cell}` : c.kind === "email" ? `email:${(c.email_message_id||"").slice(0,18)}#L${c.line??""}` : c.kind)).join("<br>")}</td></tr>`).join("") +
+    `</table>`;
+    if (v.gaps.length) html += `<h3>Gaps</h3><ul>` + v.gaps.map(g => `<li>${esc(g)}</li>`).join("") + `</ul>`;
+    if (v.exceptions.length) html += `<h3>Exceptions → human queue</h3><ul>` + v.exceptions.map(g => `<li>${esc(g)}</li>`).join("") + `</ul>`;
+    html += `<p><a href="/api/runs/${esc(state.runId)}/pack">⬇ Download audit-ready pack (.zip)</a></p>`;
+  }
+  return html;
+}
+
+/* ---------------- tab 2: eval ---------------- */
+let evalPoll = null;
+window.startEval = async () => { await api("/api/eval", { method: "POST" }); pollEval(); render(); };
+async function pollEval() {
+  clearTimeout(evalPoll);
+  const st = await api("/api/eval");
+  state.evalState = st;
+  if (st.status === "running") evalPoll = setTimeout(pollEval, 2500);
+  if (state.tab === 2) render();
+}
+function evalTab() {
+  const st = state.evalState || { status: "idle" };
+  let html = `<h2>Evaluation harness</h2>
+  <p class="muted">Runs the three golden fixture controls plus seeded-defect variants
+  (altered totals, inverted timestamps, missing sign-off, out-of-scope inclusion,
+  preparer=reviewer) and computes the five gate metrics. A release ships only when
+  the gates pass — this is the same gate the Golden Library uses.</p>
+  <div class="row"><button class="primary" onclick="startEval()" ${st.status === "running" ? "disabled" : ""}>
+    ${st.status === "running" ? "Running…" : "Run evaluation"}</button></div>`;
+  if (st.status === "done") html += `<p class="banner">Gates ${st.gates_passed ? "PASSED" : "FAILED"}</p>
+    <div class="ledger">${esc(st.summary)}</div>`;
+  if (st.status === "error") html += `<p class="banner err">${esc(st.error)}</p>`;
+  return html;
+}
+
+/* ---------------- tab 3: governance ---------------- */
+async function loadGovernance() {
+  try { state.exceptions = await api("/api/exceptions"); } catch { state.exceptions = []; }
+}
+function governance() {
+  let html = `<h2>Governance</h2>
+  <h3>Exception queue → Golden Library</h3>
+  <p class="muted">Verifier disagreements and high anomalies land here. A human
+  adjudication becomes a Golden Library exemplar - and ships to runtime only after
+  the eval gates pass plus SME sign-off. Nothing learns silently.</p>`;
+  const ex = state.exceptions || [];
+  if (!ex.length) html += `<p class="muted">Queue is empty.</p>`;
+  else html += `<table><tr><th>Control</th><th>Check</th><th>Pattern</th><th>Status</th></tr>` +
+    ex.map(e => `<tr><td>${esc(e.control_id)}</td><td class="mono">${esc(e.check_id)}</td>
+      <td>${esc(e.pattern).slice(0,120)}</td><td>${esc(e.status || "pending")}</td></tr>`).join("") + `</table>`;
+  html += `<h3>Approved plans</h3>
+  <table><tr><th>Control</th><th>Version</th><th>Approved by</th><th>Checks</th><th>Evidence items</th></tr>` +
+    state.controls.map(c => `<tr><td>${esc(c.control_id)}</td><td class="mono">v${esc(c.version)}</td>
+      <td>${esc(c.approved_by || "")}</td><td>${c.checks.length}</td><td>${c.expected_evidence.length}</td></tr>`).join("") +
+  `</table>`;
+  return html;
+}
+
+/* ---------------- tab 4: how it works ---------------- */
+function howItWorks() {
+  return `<h2>How a run works</h2>
+  <ol>
+    <li><b>Ingest</b> — the package is unpacked recursively (email → zip → workbook →
+      screenshot, OLE embeddings included); every leaf is SHA-256 hashed into the immutable
+      evidence store and becomes addressable: <span class="mono">file_hash + Sheet!Cell</span>,
+      <span class="mono">message_id + line</span>, image hash.</li>
+    <li><b>Match</b> — each item the frozen plan expects is located by name hints.
+      Required-and-absent → <b>gap</b>. Present-but-unexpected → observation, unless
+      the plan excludes it from scope.</li>
+    <li><b>Sentinel</b> — adversarial pre-screen: recycled prior-period artifacts,
+      link placeholders, pasted constants where formulas belong, deltas parked at the
+      tolerance edge, single-actor sign-off chains. High severity → exception queue.</li>
+    <li><b>Checks (parallel)</b> — <b>numeric</b>: pure Python recompute, zero model calls
+      (invariant-tested). <b>temporal / signoff / vision</b>: a tool-using agent reasons,
+      but every number/timestamp/fact comes from a deterministic tool that returns a citation.</li>
+    <li><b>Verify</b> — a blinded critic re-performs each finding from
+      {check, claimed verdict, citations} alone. It never sees the executor's reasoning.
+      Disagreement → exception queue, not a silent overwrite.</li>
+    <li><b>Adjudicate</b> — the citation gate mechanically rejects any claim whose locator
+      does not resolve against the evidence graph; verdicts aggregate to
+      pass / pass_with_gaps / fail; the audit pack zips everything.</li>
+  </ol>
+  <p class="muted">Model seat: one adapter — DaVinci in production, stub offline. The ledger
+  records which backend answered every call. Numbers are never model output.</p>`;
+}
+
+/* ---------------- shell ---------------- */
+function render() {
+  nav();
+  const views = [wizard, liveRun, evalTab, governance, howItWorks];
+  $("#main").innerHTML = views[state.tab]();
+  if (state.tab === 0 && state.picked) {
+    const drop = $("#drop"), fp = $("#fpick");
+    if (drop) {
+      drop.addEventListener("dragover", e => { e.preventDefault(); drop.classList.add("hot"); });
+      drop.addEventListener("dragleave", () => drop.classList.remove("hot"));
+      drop.addEventListener("drop", e => { e.preventDefault(); drop.classList.remove("hot");
+        uploadFiles([...e.dataTransfer.files]); });
+      fp.addEventListener("change", () => uploadFiles([...fp.files]));
+    }
+  }
+  if (state.tab === 1) pollRun();
+  if (state.tab === 2 && !state.evalState) pollEval();
+  if (state.tab === 3) loadGovernance().then(() => { if (state.tab === 3) $("#main").innerHTML = governance(); });
+}
+
+loadControls().then(render);
+</script>
+</body>
+</html>
