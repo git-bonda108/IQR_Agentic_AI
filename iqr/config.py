@@ -54,6 +54,7 @@ AZURE_FOUNDRY_ENDPOINT = os.environ.get("AZURE_FOUNDRY_ENDPOINT", "")
 AZURE_FOUNDRY_API_KEY = os.environ.get("AZURE_FOUNDRY_API_KEY", "")
 AZURE_FOUNDRY_DEPLOYMENT = os.environ.get("AZURE_FOUNDRY_DEPLOYMENT", "")
 AZURE_FOUNDRY_API_VERSION = os.environ.get("AZURE_FOUNDRY_API_VERSION", "2024-10-21")
+AZURE_FOUNDRY_EMBEDDING_DEPLOYMENT = os.environ.get("AZURE_FOUNDRY_EMBEDDING_DEPLOYMENT", "")
 # ... and Foundry IQ: agentic knowledge retrieval over a knowledge base.
 FOUNDRY_IQ_ENDPOINT = os.environ.get("FOUNDRY_IQ_ENDPOINT", "")
 FOUNDRY_IQ_API_KEY = os.environ.get("FOUNDRY_IQ_API_KEY", "")

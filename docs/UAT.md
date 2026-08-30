@@ -2,16 +2,31 @@
 
 Run these in order from the console (`.venv/bin/python -m iqr.cli serve` →
 http://127.0.0.1:8400). Each case states the exact steps and the expected
-result. Total time: ~20 minutes.
+result. Total time: ~30 minutes.
 
-## UAT-0 · Intake — bulk upload and the package's story
-1. **New validation** tab → drag ALL files from
-   `tests/fixtures/controls/C10032/package` into the drop zone (mixed formats:
-   xlsx, eml, zip, docx) — or paste the folder path and click **Analyze folder**.
-- **Expect:** artifact/cell/email counts and format chips; a grounded story
-  naming the control and its checks; **C10032 suggested at 100% evidence**
-  (other controls ranked below with coverage bars); missing evidence, if any,
-  declared BEFORE the run. Confirm and click **Run validation · C10032**.
+**Data:** the REAL evidence corpus lives at
+`data/input/iqr_build_package/03_source_evidence/` (per-control folders).
+`data/` is gitignored, so on a fresh clone pull it from the `source-evidence`
+blob container first (MIGRATION.md Phase 6) — or run every case against the
+synthetic fixtures in `tests/fixtures/controls/`, which need nothing.
+
+## UAT-0 · Intake on REAL evidence — bulk upload and the package's story
+1. **New validation** tab → paste
+   `data/input/iqr_build_package/03_source_evidence/control_10032_consolidation_recon`
+   and click **Analyze folder** (or drag all six real files — .xlsm, .xlsb,
+   .msg, .xlsx, .docx — into the drop zone). Real ingest walks millions of
+   cells; expect minutes, not seconds.
+- **Expect:** the real anatomy (11+ leaves after the .msg unpacks its nested
+  ZIP and checklist; millions of cells); each expected-evidence item matched
+  to a real file with the match METHOD recorded (name or semantic, with the
+  embedding backend and score); a grounded story naming the consolidation
+  reconciliation; **C10032 suggested with plan v2.0.0** (the real-locator
+  plan), fixture-era plans ranked below. Missing items, if any, declared
+  BEFORE the run.
+
+## UAT-0b · Intake offline substitute (fixtures, no data pull)
+1. Same steps with `tests/fixtures/controls/C10032/package`.
+- **Expect:** C10032 suggested at 100% evidence with plan v1.0.0.
 
 ## UAT-1 · Run a clean control end to end
 1. **New validation** tab → analyze `tests/fixtures/controls/C23024/package`

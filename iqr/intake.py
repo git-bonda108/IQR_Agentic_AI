@@ -56,8 +56,8 @@ def _plan_candidates(graph) -> list[dict]:
                 "missing": missing,
                 "checks": [{"id": c.id, "type": c.check_type,
                             "description": c.description} for c in plan.checks]}
-            if best is None or cand["coverage"] > best["coverage"]:
-                best = cand
+            if best is None or cand["coverage"] >= best["coverage"]:
+                best = cand    # >= : on a coverage tie the NEWER version wins
         if best is not None:
             out.append(best)
     out.sort(key=lambda c: (-c["coverage"], c["control_id"]))

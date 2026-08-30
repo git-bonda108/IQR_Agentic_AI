@@ -116,7 +116,7 @@ dd.push(table(["Layer", "Responsibility", "Key property"],
 dd.push(h1("4. Intake first — start from the evidence, not a dropdown"));
 dd.push(p("A performer bulk-uploads whatever the period produced — any mix, any nesting. Before anything runs, IQR:"));
 dd.push(step("Ingests deterministically: hash, extract, address every fact (the same machinery as the run).", "steps"));
-dd.push(step("Infers the control mechanically: every frozen plan version is scored by required-evidence coverage; the best-fitting version per control is ranked (packages from different periods legitimately match different versions).", "steps"));
+dd.push(step("Infers the control mechanically: every frozen plan version is scored by required-evidence coverage. Matching is two-pass: exact name matching first, then SEMANTIC matching by an embedding seat — each artifact's content signals (path, kind, sheet names, email subject and opening lines, document paragraphs) embedded against each plan item's meaning, constrained by the artifact kind the reading checks demand (a sign-off check needs an email; a numeric check needs a workbook), assigned globally best-pair-first. Every match records its method, score, and embedding backend in the ledger. The embedding seat degrades visibly to a deterministic offline vectorizer.", "steps"));
 dd.push(step("Narrates the package's story: what this appears to be, what will be validated, what is already missing — every fact from the graph and the plan; the model only phrases it.", "steps"));
 dd.push(p("A human confirms the inferred control before the run. Inference ranks; people decide; the frozen plan remains the law."));
 
@@ -171,6 +171,7 @@ dd.push(p("Batch mode repeats the harness N times, scores each gate (mean/min/ma
 dd.push(h1("11. Cloud mapping — Azure AI Foundry"));
 dd.push(table(["Concern", "Service", "Role"],
   [["Model seats", "Foundry project, multiple deployments", "Per-seat routing; temperature 0 + pinned seed where permitted; offline stub as terminal fallback"],
+   ["Embedding seat", "Foundry embedding deployment (text-embedding-3-small)", "Semantic artifact-to-evidence matching; deterministic hashed vectorizer as offline fallback"],
    ["Knowledge retrieval", "Foundry IQ over an AI Search index", "Control KB + Golden Library grounding; degrades visibly to a local mirror"],
    ["Evidence & ledgers", "Blob Storage (immutability-ready)", "Content-addressed custody; append-only replayable ledgers; packs; frozen plans"],
    ["Run index & HITL queue", "Table Storage", "Cheap queryable rows"],
