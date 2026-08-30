@@ -324,10 +324,38 @@ def _policy_plan(ctx, obs):
                                               ctx["doc_paragraphs"])}
 
 
+def _policy_intake(ctx, obs):
+    """Deterministic intake narrative: pure function of the mechanical facts."""
+    s = ctx["summary"]
+    best = ctx.get("best_candidate")
+    parts = [f"The package contains {s['leaves']} artifact(s) "
+             f"({', '.join(f'{n} {k}' for k, n in sorted(s['formats'].items()))}) "
+             f"holding {s['cells']} cells, {s['emails']} email(s) and "
+             f"{s['images']} image(s)."]
+    caveats = [f"ingest error: {e}" for e in s.get("errors", [])]
+    if best:
+        parts.append(f"It most closely matches control {best['control_id']} "
+                     f"({best['description'][:80]}...) with "
+                     f"{best['coverage']:.0%} of required evidence present.")
+        checks = ", ".join(f"{c['id']} ({c['type']})" for c in best["checks"])
+        parts.append(f"Validation will perform: {checks}.")
+        if best["missing"]:
+            parts.append("Already missing before any run: "
+                         + ", ".join(best["missing"])
+                         + " - these will become honest gaps.")
+    else:
+        parts.append("No approved plan matches this evidence; compile and "
+                     "approve a plan before validation can run.")
+        caveats.append("no matching approved control")
+    return {"action": "final", "output": {"story": " ".join(parts),
+                                          "caveats": caveats}}
+
+
 _POLICIES = {
     "vision": _policy_vision,
     "temporal": _policy_temporal,
     "signoff": _policy_signoff,
     "verify": _policy_verify,
     "plan_compile": _policy_plan,
+    "intake": _policy_intake,
 }

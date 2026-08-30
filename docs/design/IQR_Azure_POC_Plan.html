@@ -1,0 +1,246 @@
+<title>IQR on Azure — POC Plan</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&family=Public+Sans:ital,wght@0,400;0,600;1,400&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+  :root{
+    --paper:#ffffff; --ground:#f4f7f9; --ink:#0e1b22; --muted:#4c5e68;
+    --hairline:#d5dee3; --accent:#0096d6; --accent-ink:#00699b;
+    --pass:#177245; --warn:#a1620a; --fail:#b3261e;
+    --chipbg:#eef4f8; --codebg:#f0f4f6;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --paper:#101a20; --ground:#0a1216; --ink:#e8eef2; --muted:#9fb2bc;
+      --hairline:#26343c; --accent:#3db4e8; --accent-ink:#6cc8f0;
+      --pass:#4cc38a; --warn:#e0a44e; --fail:#f2726a;
+      --chipbg:#182731; --codebg:#16232b;
+    }
+  }
+  :root[data-theme="dark"]{
+    --paper:#101a20; --ground:#0a1216; --ink:#e8eef2; --muted:#9fb2bc;
+    --hairline:#26343c; --accent:#3db4e8; --accent-ink:#6cc8f0;
+    --pass:#4cc38a; --warn:#e0a44e; --fail:#f2726a;
+    --chipbg:#182731; --codebg:#16232b;
+  }
+  *{box-sizing:border-box}
+  body{background:var(--ground); color:var(--ink); margin:0;
+       font:400 16px/1.65 "Public Sans", system-ui, sans-serif;}
+  .sheet{max-width:52rem; margin:0 auto; padding:3rem 2.5rem 4rem;
+         background:var(--paper); min-height:100vh;
+         border-left:1px solid var(--hairline); border-right:1px solid var(--hairline);}
+  h1,h2,h3{font-family:"Archivo", system-ui, sans-serif; text-wrap:balance; line-height:1.2}
+  h1{font-size:2.1rem; font-weight:700; margin:.25rem 0 .5rem}
+  h2{font-size:1.35rem; font-weight:600; margin:2.8rem 0 .8rem;
+     padding-top:1.6rem; border-top:1px solid var(--hairline)}
+  h3{font-size:1.05rem; font-weight:600; margin:1.6rem 0 .5rem}
+  p{max-width:65ch; margin:.7rem 0}
+  .eyebrow{font-size:.72rem; letter-spacing:.14em; text-transform:uppercase;
+           color:var(--accent-ink); font-weight:600; font-family:"Archivo",sans-serif}
+  .sub{color:var(--muted); max-width:65ch; margin-top:0}
+  table{border-collapse:collapse; width:100%; margin:1rem 0; font-size:.92rem}
+  th{font-family:"Archivo",sans-serif; font-size:.75rem; letter-spacing:.08em;
+     text-transform:uppercase; text-align:left; color:var(--muted);
+     border-bottom:2px solid var(--ink); padding:.45rem .6rem .35rem}
+  td{border-bottom:1px solid var(--hairline); padding:.55rem .6rem; vertical-align:top}
+  td:first-child{white-space:nowrap}
+  .num{font-variant-numeric:tabular-nums; text-align:right; white-space:nowrap}
+  th.num{text-align:right}
+  .tablewrap{overflow-x:auto}
+  code, .loc{font:400 .85em/1.5 "IBM Plex Mono", ui-monospace, monospace;
+             background:var(--codebg); padding:.1em .35em; border-radius:3px}
+  .verdict{border:1.5px solid var(--ink); padding:1.1rem 1.3rem; margin:1.6rem 0;
+           background:var(--paper)}
+  .verdict p{margin:.4rem 0}
+  .chip{display:inline-block; font:500 .72rem/1 "IBM Plex Mono",monospace;
+        letter-spacing:.05em; padding:.3em .6em; border-radius:999px;
+        background:var(--chipbg); color:var(--accent-ink); margin-right:.35rem}
+  .on{color:var(--pass)} .off{color:var(--muted)} .warntx{color:var(--warn)}
+  .live{color:var(--pass); font-weight:600}
+  .pending{color:var(--warn); font-weight:600}
+  .rule-item{border-left:3px solid var(--accent); padding:.15rem 0 .15rem 1rem; margin:.9rem 0}
+  .rule-item strong{font-family:"Archivo",sans-serif}
+  ol.phases{padding-left:1.4rem}
+  ol.phases li{margin:.55rem 0; padding-left:.3rem}
+  ul{padding-left:1.3rem} li{margin:.35rem 0}
+  a{color:var(--accent-ink)}
+  .footnote{color:var(--muted); font-size:.85rem; border-top:1px solid var(--hairline);
+            margin-top:3rem; padding-top:1rem; max-width:65ch}
+  @media (max-width:640px){ .sheet{padding:2rem 1.2rem} }
+</style>
+
+<div class="sheet">
+  <div class="eyebrow">IQR · Intelligent Quality Review · Azure POC</div>
+  <h1>IQR on Azure — POC Plan</h1>
+  <p class="sub">Agents, tools, storage, web app, and the Fabric IQ decision — costed
+  against the free-trial subscription. Status as of 30 Aug 2026: the Foundry engine
+  is live and all five eval gates pass on real model runs.</p>
+
+  <div class="verdict">
+    <p><strong>The three decisions this document exists to make:</strong></p>
+    <p>① <strong>Fabric IQ — defer.</strong> Nothing in the validation loop needs it; it is
+    an analytics layer. When wanted, it bolts on with zero rework and can be paused to $0.</p>
+    <p>② <strong>Storage — Blob + Table, already live.</strong> Blob for evidence, ledgers,
+    packs (immutable, ~$0.03/mo). Table for the run index and exception queue (pennies).
+    Semantics live in the AI Search knowledge index, not the storage tier.</p>
+    <p>③ <strong>You pay nothing.</strong> The subscription is a Free Trial with the spending
+    limit <em>on</em>: Azure suspends rather than charges. Everything below fits far inside
+    the $200 credit; the web app deploys on the always-free tier.</p>
+  </div>
+
+  <h2>Is Fabric IQ necessary? No — and here is the reasoning</h2>
+  <p>Fabric IQ answers a different question than IQR does. IQR's loop —
+  ingest → match → sentinel → checks → verify → adjudicate — needs grounded
+  <em>retrieval</em> (how was this pattern judged before? what does this control expect?),
+  and that is Foundry IQ's job, already live on the AI Search index. Fabric IQ adds a
+  semantic <em>ontology + analytics</em> layer over operational data: "which controls
+  trended pass-with-gaps across FY26?", "which preparer's packages carry the most
+  sentinel anomalies?" That intelligence matters when dozens of controls run every
+  period — not while a POC validates three.</p>
+
+  <p>The cost mechanics, since you asked about turning it on and off:</p>
+  <ul>
+    <li><strong>Fabric F-SKU capacities bill per second and can be paused</strong> from the
+    portal — a paused F2 costs $0. Run it only during a demo and the bill is cents.</li>
+    <li>A separate <strong>60-day Fabric trial capacity</strong> is free and burns no Azure
+    credit at all — the right vehicle if you want to show Fabric IQ inside the POC window.</li>
+    <li><strong>Zero rework later:</strong> verdicts and ledgers already land as JSON blobs.
+    A OneLake <em>shortcut</em> reads those containers in place — no copy, no pipeline.
+    Deferring Fabric IQ costs us nothing in future integration.</li>
+  </ul>
+
+  <h2>Cost ledger — what runs, what it costs, how to switch it off</h2>
+  <div class="tablewrap"><table>
+    <tr><th>Engine</th><th>Resource</th><th class="num">Monthly</th><th>Off-switch</th></tr>
+    <tr><td>Model seat</td><td><code>iqr-foundry-108</code> · gpt-4.1-mini (S0, pay-per-token)</td>
+        <td class="num">~$0.50 <span class="off">at POC usage</span></td>
+        <td>Nothing idle to pay; a full 3-control eval ≈ 1–2¢</td></tr>
+    <tr><td>Knowledge (Foundry IQ)</td><td><code>iqr-search-108</code> · AI Search free tier</td>
+        <td class="num">$0</td><td>Free tier — nothing to switch off</td></tr>
+    <tr><td>Data estate</td><td><code>stiqrsox108</code> · Blob + Table, LRS</td>
+        <td class="num">~$0.03</td><td>Delete containers when done</td></tr>
+    <tr><td>Web app</td><td>App Service <strong>F1 (Free)</strong> · Linux/Python</td>
+        <td class="num">$0</td><td>Always free; 60 CPU-min/day cap</td></tr>
+    <tr><td class="off">Fabric IQ</td><td class="off">F2 capacity — <em>deferred</em></td>
+        <td class="num off">$0 (not provisioned)</td>
+        <td class="off">If added: pause button → $0; or 60-day free trial</td></tr>
+  </table></div>
+  <p class="sub">Subscription: <code>FreeTrial_2014-09-01</code>, spending limit <strong>on</strong> —
+  Azure cannot charge you; it suspends at credit exhaustion. Exact credit balance:
+  portal → Cost Management → “Free trial credit”.</p>
+
+  <h2>The architecture — what exists and what each part does</h2>
+
+  <h3>The three laws (everything descends from these)</h3>
+  <div class="rule-item"><strong>Numbers are computed by deterministic Python, never by a model.</strong>
+  A test fails if a model is invoked on any numeric path.</div>
+  <div class="rule-item"><strong>Every claim carries a resolvable evidence locator.</strong>
+  The citation gate mechanically rejects anything else — 100% citation validity is a hard gate.</div>
+  <div class="rule-item"><strong>Same input produces the same verdict.</strong>
+  Reproducibility binds the verdict and its evidence set; a live model may rephrase, never re-decide.</div>
+
+  <h3>Agent roster (all reasoning through Foundry <code>gpt-41-mini</code>, temp 0, seed pinned)</h3>
+  <div class="tablewrap"><table>
+    <tr><th>Agent</th><th>Invoked</th><th>Tools it may call</th><th>Emits</th></tr>
+    <tr><td>Plan Compiler</td><td>Design time, per control</td>
+        <td>doc readers, Foundry IQ retrieval</td><td>Draft plan → SME review</td></tr>
+    <tr><td>Temporal</td><td>Per temporal check</td>
+        <td><code>cell_read</code>, <code>email_signoff_facts</code>, <code>timestamp_order</code></td>
+        <td>Finding + citations</td></tr>
+    <tr><td>Sign-off / SoD</td><td>Per signoff check</td>
+        <td><code>email_signoff_facts</code>, <code>cell_read</code></td><td>Finding + citations</td></tr>
+    <tr><td>Vision</td><td>Per vision check</td>
+        <td><code>ocr_labeled_number</code>, <code>cell_read</code></td><td>Finding + citations</td></tr>
+    <tr><td>Blinded Verifier</td><td>Per finding</td>
+        <td>re-perform tools only — sees {check, verdict, citations}, never reasoning</td>
+        <td>agree / disagree → exception queue</td></tr>
+    <tr><td class="off">Anomaly Sentinel</td><td class="off">Before checks</td>
+        <td class="off">deliberately <em>not</em> an LLM — six deterministic detectors</td>
+        <td class="off">cited anomalies (HIGH → exceptions)</td></tr>
+  </table></div>
+
+  <h3>Deterministic tools (the only source of facts)</h3>
+  <div class="tablewrap"><table>
+    <tr><th>Tool</th><th>Contract</th></tr>
+    <tr><td><code>cell_read</code> / <code>range_read</code></td><td>workbook cell(s) → value + <span class="loc">cell:hash+Sheet!Cell</span> citation; missing is loud</td></tr>
+    <tr><td><code>recompute</code></td><td>sum/product/delta/equals vs tolerance — pure arithmetic</td></tr>
+    <tr><td><code>timestamp_order</code></td><td>tz-normalize (GMT/CDT → UTC) then order — the 10032 case</td></tr>
+    <tr><td><code>email_signoff_facts</code></td><td>.msg/.eml → sender, UTC date, approval line, line-cited</td></tr>
+    <tr><td><code>ocr_labeled_number</code></td><td>screenshot → provenance/labels (numeric ties come from cells, never OCR digits)</td></tr>
+    <tr><td><code>citation.resolve</code></td><td>the gate: true only if the locator dereferences against hashed evidence</td></tr>
+  </table></div>
+
+  <h3>Where every byte lives</h3>
+  <div class="tablewrap"><table>
+    <tr><th>Store</th><th>Holds</th><th>Why this tier</th></tr>
+    <tr><td>Blob <code>evidence-store</code></td><td>SHA-256-named immutable leaves</td>
+        <td>Chain of custody = content addressing; WORM policy is a one-liner at production</td></tr>
+    <tr><td>Blob <code>run-ledgers</code></td><td>append-only JSONL — every tool call, agent step, backend</td>
+        <td>The replayable audit artifact and the platform's own ITGC evidence</td></tr>
+    <tr><td>Blob <code>audit-packs</code> / <code>plans</code></td><td>deliverable .zips · frozen SME-approved plans</td>
+        <td>Immutable versioned documents</td></tr>
+    <tr><td>Table <code>runs</code> / <code>exceptions</code></td><td>run index · HITL queue rows</td>
+        <td>Small queryable rows; pennies; no server</td></tr>
+    <tr><td>Search <code>iqr-knowledge</code></td><td>plans, real-corpus lessons, golden exemplars</td>
+        <td><strong>Semantics concentrate here</strong> — retrieval-anchored grounding for every agent</td></tr>
+  </table></div>
+
+  <h2>Hallucination is removed structurally, not by prompt-begging</h2>
+  <ul>
+    <li><strong>Agents cannot state a fact they didn't get from a tool</strong> — the runtime, not
+    the model, accumulates citations; every number in a finding is an echo of a tool result.</li>
+    <li><strong>The blinded verifier re-performs every finding</strong> from citations alone —
+    the executor's reasoning is structurally absent from its input type.</li>
+    <li><strong>The citation gate</strong> rejects any claim whose locator doesn't resolve — before
+    the verdict and again at pack assembly.</li>
+    <li><strong>Honest missing:</strong> absent or unreadable evidence becomes a gap, never a pass.
+    In live Foundry runs, model variance only ever produced <em>extra gaps for humans</em> — never a false pass.</li>
+    <li><strong>Every document type is read deterministically:</strong> .xlsx/.xlsm/.xlsb, .docx
+    (including a 184MB workbook embedded as OLE), .msg/.eml with nested ZIPs, screenshots via OCR —
+    each fact addressable, each failure recorded, nothing silently skipped.</li>
+  </ul>
+
+  <h2>Human in the loop — two gates, both human-owned</h2>
+  <p><strong>Design gate:</strong> the Plan Compiler drafts; an SME pins tolerances, timezones and
+  scope, and freezes the plan. The runtime refuses unapproved plans, so a human decides
+  <em>what is validated</em> before anything runs.</p>
+  <p><strong>Run gate:</strong> sentinel HIGH anomalies, verifier disagreements, and gaps land in the
+  exception queue (Table <code>exceptions</code>, surfaced in the console's Governance tab). A human
+  adjudicates each one; nothing auto-submits in Shadow mode. Final approval of a package stays
+  with the reviewer — IQR hands them a fully cited pack, not a decision.</p>
+
+  <h2>Continuous learning — governed, never silent</h2>
+  <p>Every human adjudication is recorded as an exemplar with its rationale. An exemplar reaches
+  the runtime path only through two locks: the five-gate regression eval must stay green
+  <em>with the exemplar included</em>, and an SME signs the release. Accepted exemplars index into
+  the Golden Library on <code>iqr-knowledge</code>, so the next package with the same pattern
+  retrieves how it was judged before — and every override becomes a permanent regression case.
+  Quality compounds; it cannot drift, because drift fails the eval.</p>
+
+  <h2>Web app on Azure</h2>
+  <p>The console (run a control, watch the live ledger, adjudicate exceptions, download packs)
+  deploys to <strong>App Service F1 — the always-free tier</strong>: Linux, Python 3.12,
+  <code>uvicorn iqr.api.app:app</code>. One non-negotiable before it leaves localhost:
+  <strong>Easy Auth (Entra ID) switched on</strong> — free, one CLI command — because the console
+  fronts real control evidence and has no auth of its own. Locked to your tenant, it costs $0
+  and is reachable from any browser.</p>
+
+  <h2>Status and the path from here</h2>
+  <ol class="phases">
+    <li><span class="live">LIVE</span> — Foundry model seat serving all agent seats; three real
+    controls pass end-to-end; five eval gates pass on live runs; 50/50 tests green.</li>
+    <li><span class="live">LIVE</span> — Foundry IQ grounding: knowledge index seeded and wired
+    into the Control KB and Golden Library with visible local fallback.</li>
+    <li><span class="live">LIVE</span> — MCP server: any Foundry agent or Claude can drive IQR
+    as typed tools (<code>run_control</code>, <code>get_run_ledger</code>, …) without bypassing a single invariant.</li>
+    <li><span class="pending">NEEDS A NOD</span> — bulk data upload to Blob (~1.5GB evidence +
+    ledgers): the CLI mass-upload is permission-gated on your side.</li>
+    <li><span class="pending">NEXT</span> — deploy the console to App Service F1 + Easy Auth.</li>
+    <li><span class="off">DEFERRED</span> — Fabric IQ analytics over OneLake shortcuts, on the
+    free 60-day trial capacity, once multi-control trend questions matter.</li>
+  </ol>
+
+  <p class="footnote">Chips for the record:
+  <span class="chip">rg-iqr-sox</span><span class="chip">iqr-foundry-108</span>
+  <span class="chip">iqr-search-108</span><span class="chip">stiqrsox108</span>
+  <span class="chip">gpt-41-mini · temp 0 · seed 42</span>
+  — keys live only in the gitignored <code>.env</code>; tests are hermetic and never dial Azure.</p>
+</div>

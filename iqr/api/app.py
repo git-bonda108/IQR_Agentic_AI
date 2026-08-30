@@ -261,6 +261,20 @@ def api_adjudicate(req: AdjudicationRequest):
         iqr_verdict=req.iqr_verdict)
 
 
+class IntakeRequest(BaseModel):
+    package_ref: str
+
+
+@app.post("/api/intake")
+def api_intake(req: IntakeRequest):
+    """Understand an uploaded package before anything runs: ingest, infer the
+    control by required-evidence coverage, and narrate the package's story."""
+    if not Path(req.package_ref).is_dir():
+        raise HTTPException(400, f"package_ref is not a directory: {req.package_ref}")
+    from iqr.intake import analyze_package
+    return analyze_package(req.package_ref)
+
+
 @app.post("/api/learn")
 def api_learn():
     """Offline reinforcement pass: fold recorded adjudications into the

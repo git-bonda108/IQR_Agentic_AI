@@ -89,6 +89,27 @@
   .steps span { font-size:.75rem; letter-spacing:.05em; padding:.25em .7em;
     border-radius:99px; border:1px solid var(--line); color:var(--soft); }
   .steps span.now { border-color:var(--accent); color:var(--accent-ink); font-weight:600; }
+  .hero { border:1px solid var(--line); border-radius:14px; background:var(--surface);
+    padding:2rem 2rem 1.6rem; margin:.4rem 0 1.4rem; box-shadow:0 1px 3px rgba(0,0,0,.04); }
+  .hero h2 { margin-top:0; }
+  .drop.big { padding:2.6rem 1.6rem; font-size:1rem; border-radius:12px;
+    background:var(--paper); }
+  .fmt { display:inline-block; font-family:"IBM Plex Mono",monospace; font-size:.72rem;
+    background:var(--code); border:1px solid var(--line); border-radius:5px;
+    padding:.18em .55em; margin:.15rem .3rem .15rem 0; }
+  .story { border-left:3px solid var(--accent); background:var(--surface);
+    padding:1rem 1.2rem; border-radius:0 10px 10px 0; margin:1rem 0; font-size:.95rem;
+    line-height:1.6; }
+  .covbar { display:inline-block; width:140px; height:9px; border-radius:99px;
+    background:var(--line); vertical-align:middle; overflow:hidden; }
+  .covbar i { display:block; height:100%; background:var(--accent); }
+  .statrow { display:flex; gap:1.6rem; flex-wrap:wrap; margin:.8rem 0 .4rem; }
+  .stat { min-width:90px; }
+  .stat b { display:block; font-size:1.5rem; font-family:"Archivo",sans-serif; }
+  .stat span { font-size:.72rem; letter-spacing:.08em; text-transform:uppercase; color:var(--soft); }
+  .candidate { display:flex; align-items:center; gap:1rem; padding:.7rem .2rem;
+    border-top:1px solid var(--line); flex-wrap:wrap; }
+  .candidate .cid { font-family:"Archivo",sans-serif; font-weight:600; min-width:5.5rem; }
 </style>
 </head>
 <body>
@@ -107,9 +128,10 @@ const api = async (path, opts) => {
 };
 const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 
-const TABS = ["Run a control", "Live run", "Evaluation", "Governance", "How it works"];
+const TABS = ["New validation", "Live run", "Evaluation", "Governance", "How it works"];
 let state = { tab: 0, controls: [], picked: null, packageRef: "", runId: null,
-              ledgerN: 0, runStatus: null, poll: null };
+              ledgerN: 0, runStatus: null, poll: null,
+              intake: null, intakeBusy: false, chosen: null };
 
 function nav() {
   $("#nav").innerHTML = TABS.map((t, i) =>
@@ -121,63 +143,100 @@ async function loadControls() {
   try { state.controls = await api("/api/controls"); } catch (e) { state.controls = []; }
 }
 
-/* ---------------- tab 0: run wizard ---------------- */
+/* ---------------- tab 0: intake-first flow ---------------- */
 function wizard() {
-  const c = state.picked;
-  let html = `<h2>Run a control validation</h2>
-  <div class="steps">
-    <span class="${!c ? "now" : ""}">1 · Choose control</span>
-    <span class="${c && !state.packageRef ? "now" : ""}">2 · Provide evidence</span>
-    <span class="${c && state.packageRef ? "now" : ""}">3 · Run</span>
+  const ik = state.intake;
+  let html = `<div class="steps">
+    <span class="${!state.packageRef ? "now" : ""}">1 · Upload evidence</span>
+    <span class="${state.packageRef && !ik ? "now" : ""}">2 · Understand the package</span>
+    <span class="${ik ? "now" : ""}">3 · Confirm &amp; run</span>
   </div>`;
-  if (!c) {
-    html += `<p class="muted">Each card is a frozen, SME-approved validation plan.
-      Pick the control you are validating this period.</p><div class="grid">`;
+
+  if (!ik) {
+    html += `<div class="hero"><h2>Start with the evidence — IQR works out the rest</h2>
+    <p class="muted" style="max-width:60ch">Drop the whole period's package: workbooks
+    (.xlsx/.xlsm/.xlsb), approval emails (.msg/.eml), ZIPs, screenshots, documents —
+    any mix, any nesting. IQR ingests and hashes every artifact, infers which
+    approved control this evidence belongs to, and tells you the package's story
+    before anything runs.</p>
+    <div class="drop big" id="drop">${state.intakeBusy ? "Analyzing package…" :
+      `Drag the evidence package here, or
+      <label style="text-decoration:underline;cursor:pointer">browse files<input type="file" id="fpick" multiple style="display:none"></label>`}
+      <div class="muted" id="dropmsg"></div></div>
+    <div class="row"><span class="muted">— or a folder already on this machine —</span></div>
+    <div class="row"><input type="text" id="pref" placeholder="/path/to/evidence_folder"
+        value="${esc(state.packageRef)}">
+      <button class="ghost" onclick="setRef()">Analyze folder</button></div></div>`;
+    html += `<h3>Approved controls on file</h3>
+    <p class="muted">The frozen, SME-approved plans intake matches against.</p><div class="grid">`;
     for (const ctl of state.controls) {
-      html += `<div class="card">
-        <h3>${esc(ctl.control_id)}</h3>
-        <p class="desc">${esc(ctl.description).slice(0, 140)}</p>
+      html += `<div class="card"><h3>${esc(ctl.control_id)}</h3>
+        <p class="desc">${esc(ctl.description).slice(0, 130)}</p>
         <div><span class="tag">${esc(ctl.frequency)}</span>
              <span class="tag">plan v${esc(ctl.version)}</span>
-             <span class="tag">${ctl.checks.length} checks</span></div>
-        <div style="margin-top:.8rem"><button class="primary" onclick="pick('${esc(ctl.control_id)}')">Select</button></div>
-      </div>`;
+             <span class="tag">${ctl.checks.length} checks</span></div></div>`;
     }
     if (!state.controls.length) html += `<p class="banner err">No approved plans found. Approve a plan first (Governance tab or CLI).</p>`;
     html += `</div>`;
     return html;
   }
-  html += `<div class="card"><h3>${esc(c.control_id)} · plan v${esc(c.version)}</h3>
-    <p class="desc">${esc(c.description)}</p>
-    <h3>What this plan expects you to provide</h3>
-    <p class="muted">Upload the period's GRC evidence. The matcher finds each item by name -
-    the hints below show what it looks for. Anything required and absent becomes an
-    honest <b>gap</b>, never a silent pass.</p>
-    <ul class="evlist">` +
-    c.expected_evidence.map(e => `<li>
-        <span class="${e.required ? "req" : "opt"}">${e.required ? "REQUIRED" : "OPTIONAL"}</span>
-        <span>${esc(e.description)}<br><span class="hint mono">matches: ${esc(e.match_hints.join(", "))}</span></span>
-      </li>`).join("") + `</ul>`;
-  if (c.scope_exclusions.length)
-    html += `<h3>Out of scope by plan</h3><ul class="evlist">` +
-      c.scope_exclusions.map(x => `<li><span class="opt">EXCLUDED</span><span>${esc(x.reason)}</span></li>`).join("") + `</ul>`;
-  html += `<h3>Provide the evidence package</h3>
-    <div class="drop" id="drop">Drag files here, or
-      <label style="text-decoration:underline;cursor:pointer">browse<input type="file" id="fpick" multiple style="display:none"></label>
-      <div class="muted" id="dropmsg"></div></div>
-    <div class="row"><span class="muted">— or a folder already on this machine —</span></div>
-    <div class="row"><input type="text" id="pref" placeholder="/path/to/evidence_folder"
-        value="${esc(state.packageRef)}">
-      <button class="ghost" onclick="setRef()">Use folder</button></div>
-    <div class="row" style="margin-top:1rem">
-      <button class="primary" id="runbtn" ${state.packageRef ? "" : "disabled"} onclick="startRun()">Run validation</button>
-      <span class="muted">${state.packageRef ? "package: " + esc(state.packageRef) : "no package yet"}</span>
-      <button class="ghost" onclick="state.picked=null;state.packageRef='';render()">Back</button>
-    </div></div>`;
+
+  // ---- intake result: the package's story ----
+  const s = ik.summary, chosen = state.chosen || ik.suggested_control;
+  const best = ik.candidates.find(c => c.control_id === chosen) || ik.candidates[0];
+  html += `<h2>What you uploaded</h2>
+  <div class="statrow">
+    <div class="stat"><b>${s.leaves}</b><span>artifacts</span></div>
+    <div class="stat"><b>${s.cells.toLocaleString()}</b><span>cells</span></div>
+    <div class="stat"><b>${s.emails}</b><span>emails</span></div>
+    <div class="stat"><b>${s.images}</b><span>images</span></div>
+    <div class="stat"><b>${s.errors.length}</b><span>ingest errors</span></div>
+  </div>
+  <div>${Object.entries(s.formats).map(([k, n]) => `<span class="fmt">${n} × ${esc(k)}</span>`).join("")}</div>
+  <div class="story">${esc(ik.story)}</div>`;
+  if (ik.caveats && ik.caveats.length)
+    html += ik.caveats.map(c => `<p class="banner err">${esc(c)}</p>`).join("");
+
+  html += `<h3>Which control is this? <span class="muted" style="font-weight:400">(inferred by required-evidence coverage — you confirm)</span></h3>`;
+  for (const c of ik.candidates) {
+    const sel = c.control_id === chosen;
+    html += `<div class="candidate">
+      <input type="radio" name="ctl" id="r-${esc(c.control_id)}" ${sel ? "checked" : ""}
+             onchange="choose('${esc(c.control_id)}')">
+      <label class="cid" for="r-${esc(c.control_id)}">${esc(c.control_id)}</label>
+      <span class="covbar"><i style="width:${Math.round(c.coverage * 100)}%"></i></span>
+      <span class="mono" style="font-size:.78rem">${(c.coverage * 100).toFixed(0)}% evidence</span>
+      <span class="muted" style="font-size:.85rem">${esc(c.description).slice(0, 90)}</span>
+    </div>`;
+  }
+  if (best) {
+    html += `<h3>What will be validated (${esc(best.control_id)} v${esc(best.version)})</h3>
+    <ul class="evlist">` + best.checks.map(c =>
+      `<li><span class="opt mono">${esc(c.type).toUpperCase()}</span>
+       <span><b class="mono">${esc(c.id)}</b> — ${esc(c.description)}</span></li>`).join("") + `</ul>`;
+    if (best.missing.length)
+      html += `<p class="banner err">Missing before any run: <b>${best.missing.map(esc).join(", ")}</b> —
+        these will become honest gaps, never silent passes.</p>`;
+  }
+  html += `<div class="row" style="margin-top:1.2rem">
+    <button class="primary" id="runbtn" onclick="startRun()">Run validation · ${esc(chosen)}</button>
+    <button class="ghost" onclick="state.intake=null;state.packageRef='';state.chosen=null;render()">Start over</button>
+  </div>`;
   return html;
 }
-window.pick = id => { state.picked = state.controls.find(x => x.control_id === id); render(); };
-window.setRef = () => { state.packageRef = $("#pref").value.trim(); render(); };
+window.choose = id => { state.chosen = id; render(); };
+window.setRef = () => { state.packageRef = $("#pref").value.trim(); if (state.packageRef) runIntake(); };
+
+async function runIntake() {
+  state.intakeBusy = true; state.intake = null; render();
+  try {
+    state.intake = await api("/api/intake", { method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({ package_ref: state.packageRef })});
+    state.chosen = state.intake.suggested_control;
+  } catch (e) { alert("Intake failed: " + e.message); state.packageRef = ""; }
+  state.intakeBusy = false; render();
+}
 
 async function uploadFiles(files) {
   $("#dropmsg").textContent = `Uploading ${files.length} file(s)…`;
@@ -185,16 +244,19 @@ async function uploadFiles(files) {
   for (const f of files) fd.append("files", f);
   try {
     const r = await api("/api/upload", { method: "POST", body: fd });
-    state.packageRef = r.package_ref; render();
+    state.packageRef = r.package_ref; runIntake();
   } catch (e) { $("#dropmsg").textContent = "Upload failed: " + e.message; }
 }
 
 window.startRun = async () => {
   $("#runbtn").disabled = true;
+  const control = state.chosen || (state.intake && state.intake.suggested_control);
+  const cand = state.intake && state.intake.candidates.find(c => c.control_id === control);
   try {
     const r = await api("/api/runs", { method: "POST",
       headers: {"Content-Type": "application/json"},
-      body: JSON.stringify({ control_id: state.picked.control_id, package_ref: state.packageRef })});
+      body: JSON.stringify({ control_id: control, package_ref: state.packageRef,
+                             plan_version: cand ? cand.version : null })});
     state.runId = r.run_id; state.ledgerN = 0; state.runStatus = null; state.tab = 1;
     render(); pollRun();
   } catch (e) { alert("Run failed to start: " + e.message); $("#runbtn").disabled = false; }
@@ -387,14 +449,14 @@ function render() {
   nav();
   const views = [wizard, liveRun, evalTab, governance, howItWorks];
   $("#main").innerHTML = views[state.tab]();
-  if (state.tab === 0 && state.picked) {
+  if (state.tab === 0 && !state.intake) {
     const drop = $("#drop"), fp = $("#fpick");
     if (drop) {
       drop.addEventListener("dragover", e => { e.preventDefault(); drop.classList.add("hot"); });
       drop.addEventListener("dragleave", () => drop.classList.remove("hot"));
       drop.addEventListener("drop", e => { e.preventDefault(); drop.classList.remove("hot");
         uploadFiles([...e.dataTransfer.files]); });
-      fp.addEventListener("change", () => uploadFiles([...fp.files]));
+      if (fp) fp.addEventListener("change", () => uploadFiles([...fp.files]));
     }
   }
   if (state.tab === 1) pollRun();

@@ -4,9 +4,18 @@ Run these in order from the console (`.venv/bin/python -m iqr.cli serve` →
 http://127.0.0.1:8400). Each case states the exact steps and the expected
 result. Total time: ~20 minutes.
 
+## UAT-0 · Intake — bulk upload and the package's story
+1. **New validation** tab → drag ALL files from
+   `tests/fixtures/controls/C10032/package` into the drop zone (mixed formats:
+   xlsx, eml, zip, docx) — or paste the folder path and click **Analyze folder**.
+- **Expect:** artifact/cell/email counts and format chips; a grounded story
+  naming the control and its checks; **C10032 suggested at 100% evidence**
+  (other controls ranked below with coverage bars); missing evidence, if any,
+  declared BEFORE the run. Confirm and click **Run validation · C10032**.
+
 ## UAT-1 · Run a clean control end to end
-1. **Run a control** tab → select **C23024** → "Use folder" with
-   `tests/fixtures/controls/C23024/package` → **Run validation**.
+1. **New validation** tab → analyze `tests/fixtures/controls/C23024/package`
+   (per UAT-0) → confirm **C23024** → **Run validation**.
 2. Watch the **Live run** tab: ledger events stream (INGEST → MATCH →
    SENTINEL → CHECK → VERIFY → ADJUDICATE).
 - **Expect:** verdict chip **pass**; three findings each with citations
