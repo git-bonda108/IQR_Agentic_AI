@@ -3,6 +3,7 @@ Retrieval context for the Plan Compiler ("how are controls like this structured"
 from __future__ import annotations
 
 from iqr import config
+from iqr.knowledge.foundry_iq import knowledge_store
 from iqr.knowledge.store import LocalVectorStore, VectorStore
 from iqr.schemas.validation_plan import ValidationPlan
 
@@ -10,7 +11,8 @@ from iqr.schemas.validation_plan import ValidationPlan
 class ControlKB:
     def __init__(self, store: VectorStore | None = None):
         config.ensure_dirs()
-        self.store = store or LocalVectorStore(config.KNOWLEDGE_DIR / "control_kb.json")
+        self.store = store or knowledge_store(
+            LocalVectorStore(config.KNOWLEDGE_DIR / "control_kb.json"))
 
     def index_plan(self, plan: ValidationPlan, doc_text: str) -> None:
         self.store.add(f"{plan.control_id}:{plan.version}",

@@ -11,19 +11,23 @@ import json
 from datetime import datetime, timezone
 
 from iqr import config
+from iqr.knowledge.foundry_iq import knowledge_store
 from iqr.knowledge.store import LocalVectorStore, VectorStore
 
 
 class GoldenLibrary:
     def __init__(self, store: VectorStore | None = None):
         config.ensure_dirs()
-        self.store = store or LocalVectorStore(config.KNOWLEDGE_DIR / "golden_library.json")
+        self.store = store or knowledge_store(
+            LocalVectorStore(config.KNOWLEDGE_DIR / "golden_library.json"))
         self.overrides_path = config.KNOWLEDGE_DIR / "overrides.jsonl"
 
     def record_adjudication(self, control_id: str, check_id: str, pattern: str,
-                            human_verdict: str, rationale: str, run_id: str) -> dict:
+                            human_verdict: str, rationale: str, run_id: str,
+                            iqr_verdict: str | None = None) -> dict:
         exemplar = {"control_id": control_id, "check_id": check_id,
                     "pattern": pattern, "human_verdict": human_verdict,
+                    "iqr_verdict": iqr_verdict,   # reward signal for iqr.learn
                     "rationale": rationale, "run_id": run_id,
                     "recorded_at": datetime.now(timezone.utc).isoformat(),
                     "released": False}

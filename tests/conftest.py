@@ -4,6 +4,11 @@ from pathlib import Path
 
 os.environ.setdefault("IQR_DATA_DIR", tempfile.mkdtemp(prefix="iqr_test_data_"))
 os.environ.setdefault("IQR_MODEL", "stub")
+# Tests are hermetic: pre-empt .env so no Azure endpoint is ever dialed.
+os.environ.setdefault("AZURE_FOUNDRY_ENDPOINT", "")
+os.environ.setdefault("FOUNDRY_IQ_ENDPOINT", "")
+os.environ.setdefault("FOUNDRY_IQ_API_KEY", "")
+os.environ.setdefault("FOUNDRY_IQ_KNOWLEDGE_BASE", "")
 
 import pytest
 

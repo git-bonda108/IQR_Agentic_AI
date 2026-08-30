@@ -4,6 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>IQR Console</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@600;700&family=IBM+Plex+Sans:wght@400;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
 <style>
   :root {
     --paper:#FAF9F5; --surface:#F1EFE8; --ink:#1C2321; --soft:#5A6862;
@@ -23,8 +25,14 @@
   .mono { font-family:"IBM Plex Mono",ui-monospace,monospace; }
   header { display:flex; align-items:center; gap:1.2rem; padding:.9rem 1.4rem;
     border-bottom:2px solid var(--line); }
-  header h1 { font-size:1.05rem; margin:0; letter-spacing:.02em; }
+  header h1 { font:700 1.05rem/1 "Archivo",system-ui,sans-serif; margin:0; letter-spacing:.02em; }
   header h1 span { color:var(--accent); }
+  h2, h3, nav button { font-family:"Archivo",system-ui,sans-serif; }
+  .confbar { display:inline-block; width:90px; height:8px; border-radius:99px;
+    background:var(--line); vertical-align:middle; overflow:hidden; }
+  .confbar i { display:block; height:100%; background:var(--accent); }
+  .chip.med { color:var(--amber); background:var(--warn-bg); }
+  .chip.low { color:var(--crit); background:var(--crit-bg); }
   nav { display:flex; gap:.25rem; margin-left:auto; }
   nav button { background:none; border:none; color:var(--soft); font:inherit;
     padding:.45rem .8rem; border-radius:6px; cursor:pointer; }
@@ -255,7 +263,11 @@ function liveRun() {
 
 /* ---------------- tab 2: eval ---------------- */
 let evalPoll = null;
-window.startEval = async () => { await api("/api/eval", { method: "POST" }); pollEval(); render(); };
+window.startEval = async (batch) => {
+  await api("/api/eval", { method: "POST", headers: {"Content-Type": "application/json"},
+    body: JSON.stringify({ batch: batch || null }) });
+  pollEval(); render();
+};
 async function pollEval() {
   clearTimeout(evalPoll);
   const st = await api("/api/eval");
@@ -269,11 +281,29 @@ function evalTab() {
   <p class="muted">Runs the three golden fixture controls plus seeded-defect variants
   (altered totals, inverted timestamps, missing sign-off, out-of-scope inclusion,
   preparer=reviewer) and computes the five gate metrics. A release ships only when
-  the gates pass — this is the same gate the Golden Library uses.</p>
-  <div class="row"><button class="primary" onclick="startEval()" ${st.status === "running" ? "disabled" : ""}>
-    ${st.status === "running" ? "Running…" : "Run evaluation"}</button></div>`;
-  if (st.status === "done") html += `<p class="banner">Gates ${st.gates_passed ? "PASSED" : "FAILED"}</p>
+  the gates pass — this is the same gate the Golden Library uses. A <b>batch</b> run
+  repeats the harness and scores each gate (mean/min/max) plus a per-check confidence
+  level earned from verdict stability.</p>
+  <div class="row">
+    <button class="primary" onclick="startEval()" ${st.status === "running" ? "disabled" : ""}>
+      ${st.status === "running" ? "Running…" : "Run evaluation"}</button>
+    <button class="ghost" onclick="startEval(3)" ${st.status === "running" ? "disabled" : ""}>Batch ×3 with scoring</button>
+  </div>`;
+  if (st.status === "done") {
+    html += `<p class="banner">Gates ${st.gates_passed ? "PASSED" : "FAILED"}</p>
     <div class="ledger">${esc(st.summary)}</div>`;
+    if (st.batch && st.batch.check_confidence) {
+      html += `<h3>Per-check confidence (stability across ${st.batch.runs} runs)</h3>
+      <table><tr><th>Check</th><th>Modal verdict</th><th>Stability</th><th>Level</th></tr>` +
+      Object.entries(st.batch.check_confidence).map(([k, c]) =>
+        `<tr><td class="mono">${esc(k)}</td>
+         <td><span class="chip ${esc(c.modal_verdict)}">${esc(c.modal_verdict)}</span></td>
+         <td><span class="confbar"><i style="width:${Math.round(c.stability*100)}%"></i></span>
+             <span class="mono" style="font-size:.75rem"> ${(c.stability*100).toFixed(0)}%</span></td>
+         <td><span class="chip ${c.level === "HIGH" ? "pass" : c.level === "MEDIUM" ? "med" : "low"}">${esc(c.level)}</span></td></tr>`).join("") +
+      `</table>`;
+    }
+  }
   if (st.status === "error") html += `<p class="banner err">${esc(st.error)}</p>`;
   return html;
 }
@@ -281,7 +311,14 @@ function evalTab() {
 /* ---------------- tab 3: governance ---------------- */
 async function loadGovernance() {
   try { state.exceptions = await api("/api/exceptions"); } catch { state.exceptions = []; }
+  try { state.confidence = await api("/api/confidence"); } catch { state.confidence = []; }
 }
+window.runLearn = async () => {
+  const r = await api("/api/learn", { method: "POST" });
+  state.confidence = r.priorities || [];
+  state.learnMsg = `Applied ${r.applied} new adjudication(s) across ${r.arms} check(s).`;
+  render();
+};
 function governance() {
   let html = `<h2>Governance</h2>
   <h3>Exception queue → Golden Library</h3>
@@ -293,6 +330,20 @@ function governance() {
   else html += `<table><tr><th>Control</th><th>Check</th><th>Pattern</th><th>Status</th></tr>` +
     ex.map(e => `<tr><td>${esc(e.control_id)}</td><td class="mono">${esc(e.check_id)}</td>
       <td>${esc(e.pattern).slice(0,120)}</td><td>${esc(e.status || "pending")}</td></tr>`).join("") + `</table>`;
+  html += `<h3>Earned confidence (reinforcement from adjudications)</h3>
+  <p class="muted">Every human adjudication is a reward signal: agreement raises a check's
+  posterior confidence, an override lowers it. The learner updates transparent
+  agree/override counts — never verdicts, never model weights. The most uncertain
+  checks sort first: that is where a human's judgment buys the most learning.</p>
+  <div class="row"><button class="ghost" onclick="runLearn()">Run learning pass</button>
+    <span class="muted">${esc(state.learnMsg || "")}</span></div>`;
+  const conf = state.confidence || [];
+  if (!conf.length) html += `<p class="muted">No adjudications learned from yet — confidence starts at 0.50 ("not yet trusted").</p>`;
+  else html += `<table><tr><th>Control</th><th>Check</th><th>Confidence</th><th>Observations</th><th>Review priority</th></tr>` +
+    conf.map(r => `<tr><td>${esc(r.control_id)}</td><td class="mono">${esc(r.check_id)}</td>
+      <td><span class="confbar"><i style="width:${Math.round(r.confidence*100)}%"></i></span>
+          <span class="mono" style="font-size:.75rem"> ${r.confidence.toFixed(2)}</span></td>
+      <td>${r.observations}</td><td class="mono">${r.uncertainty.toFixed(4)}</td></tr>`).join("") + `</table>`;
   html += `<h3>Approved plans</h3>
   <table><tr><th>Control</th><th>Version</th><th>Approved by</th><th>Checks</th><th>Evidence items</th></tr>` +
     state.controls.map(c => `<tr><td>${esc(c.control_id)}</td><td class="mono">v${esc(c.version)}</td>
@@ -325,8 +376,10 @@ function howItWorks() {
       does not resolve against the evidence graph; verdicts aggregate to
       pass / pass_with_gaps / fail; the audit pack zips everything.</li>
   </ol>
-  <p class="muted">Model seat: one adapter — DaVinci in production, stub offline. The ledger
-  records which backend answered every call. Numbers are never model output.</p>`;
+  <p class="muted">Model seat: one adapter with per-seat routing — each agent seat
+  (plan compiler, checks, verifier) can run a different approved cloud model, with a
+  deterministic offline stub as terminal fallback. The ledger records which backend
+  answered every call. Numbers are never model output.</p>`;
 }
 
 /* ---------------- shell ---------------- */

@@ -59,7 +59,7 @@ def test_fallback_chain_serves_and_records(plans, graphs, monkeypatch):
             raise ConnectionError("endpoint unreachable")
 
     chain = FallbackModelClient([DownClient(), StubModelClient()])
-    monkeypatch.setattr(config, "get_model_client", lambda: chain)
+    monkeypatch.setattr(config, "get_model_client", lambda seat=None: chain)
 
     from iqr.checks.dispatch import run_check
     from iqr.graph.nodes.match_node import match_evidence

@@ -54,11 +54,22 @@ Real-corpus validation results: **[docs/REAL_VALIDATION.md](docs/REAL_VALIDATION
 
 ## Model seat
 
-One adapter, temperature 0, backend chosen in `.env`: any OpenAI-compatible
-gateway (e.g. an approved internal DaVinci endpoint), optionally Anthropic
-Claude for lab work, and a deterministic offline stub as permanent fallback.
-The ledger records which backend answered every call. The demo and the entire
-test suite run with no keys at all.
+One adapter, temperature 0, backend chosen in `.env`: Azure AI Foundry
+(chat-completions deployment), any OpenAI-compatible gateway (e.g. an
+approved internal DaVinci endpoint), optionally Anthropic Claude for lab
+work, and a deterministic offline stub as permanent fallback. The ledger
+records which backend answered every call. The demo and the entire test
+suite run with no keys at all.
+
+## Azure AI Foundry & MCP
+
+Three opt-in integrations (see **[docs/AZURE_FOUNDRY.md](docs/AZURE_FOUNDRY.md)**):
+Foundry as the model seat (`IQR_MODEL=foundry` or first in the `auto` chain);
+**Foundry IQ** knowledge retrieval behind the Control KB / Golden Library
+(falls back to the local index, visibly, when unreachable); and an **MCP
+server** (`python -m iqr.mcp_server`) exposing the platform as typed tools
+and resources so a Foundry agent, Claude, or any MCP client can run cited
+validations without touching the machinery.
 
 ## Repository map
 
@@ -74,7 +85,8 @@ iqr/
   eval/         harness, five gate metrics, seeded-defect generator
   pack/         audit-ready pack assembly
   api/          FastAPI (127.0.0.1) behind the console
-  agents/       model client (endpoint chain + stub) and tool-agent runtime
+  agents/       model client (Foundry/DaVinci chain + stub) and tool-agent runtime
+  mcp_server.py IQR as an MCP server: tools + resources for external agents
 webapp/         the console (single static page over the API)
 tests/          invariants + fixtures; tests/real/ = real-corpus probes
 docs/           deployment guide, system design, validation report

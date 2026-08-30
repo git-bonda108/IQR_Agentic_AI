@@ -1,4 +1,6 @@
 """Phase 8 acceptance: run a control, adjudicate, download the pack - via API."""
+import time
+
 from fastapi.testclient import TestClient
 
 from iqr.api.app import app
@@ -6,13 +8,25 @@ from iqr.api.app import app
 client = TestClient(app)
 
 
+def _wait_for_run(run_id: str, timeout: float = 60.0) -> dict:
+    """Runs are async: poll /api/runs/{run_id} until the worker finishes."""
+    deadline = time.monotonic() + timeout
+    while time.monotonic() < deadline:
+        st = client.get(f"/api/runs/{run_id}").json()
+        if st["status"] != "running":
+            return st
+        time.sleep(0.2)
+    raise AssertionError(f"run {run_id} still running after {timeout}s")
+
+
 def test_run_and_download_pack(plans, fixtures_root):
     resp = client.post("/api/runs", json={"control_id": "C23024",
                                           "package_ref": str(fixtures_root / "C23024" / "package")})
     assert resp.status_code == 200, resp.text
-    data = resp.json()
+    run_id = resp.json()["run_id"]
+    data = _wait_for_run(run_id)
+    assert data["status"] == "done", data.get("error", data)
     assert data["verdict"]["result"] == "pass"
-    run_id = data["run_id"]
 
     pack = client.get(f"/api/runs/{run_id}/pack")
     assert pack.status_code == 200

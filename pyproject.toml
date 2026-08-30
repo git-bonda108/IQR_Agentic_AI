@@ -19,6 +19,8 @@ dependencies = [
   "extract-msg",
   "python-multipart",
   "pyxlsb",
+  "mcp>=2",
+  "pytest",
 ]
 
 [tool.pytest.ini_options]

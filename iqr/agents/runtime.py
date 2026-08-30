@@ -24,6 +24,12 @@ facts by calling the tools listed below - never invent a number, timestamp, or
 quotation. Respond with exactly one JSON object per turn:
   {"action": "tool", "tool": "<name>", "args": {...}}   to call a tool
   {"action": "final", "output": {...}}                   to conclude
+The value of "action" MUST be exactly "tool" or "final" - never a tool's name.
+Pass ONLY the arguments a tool's description asks for (many take none: use
+"args": {}). Output the raw JSON object only - no markdown fences, no prose.
+Results of YOUR prior tool calls appear in STATE_JSON under "observations" -
+read them first, never repeat a call whose result is already there, and
+respond with "final" as soon as the observations answer the task.
 Available tools:
 """
 
@@ -47,23 +53,59 @@ class AgentError(Exception):
     pass
 
 
+def _parse_action(raw: str, tool_names: set[str]) -> dict:
+    """Parse the model's action JSON, tolerating real-model quirks without
+    weakening the protocol: markdown fences or trailing prose around the
+    object, and the `{"action": "<tool-name>"}` shorthand. Anything else
+    still fails loudly - lenient reading, never lenient semantics."""
+    text = raw.strip()
+    if text.startswith("```"):
+        text = text.split("\n", 1)[-1].rsplit("```", 1)[0].strip()
+    start = text.find("{")
+    if start < 0:
+        raise AgentError(f"model returned non-JSON action: {raw[:200]}")
+    try:
+        action, _ = json.JSONDecoder().raw_decode(text[start:])
+    except json.JSONDecodeError as e:
+        raise AgentError(f"model returned non-JSON action: {raw[:200]}") from e
+    name = action.get("action")
+    if name not in ("tool", "final") and (name in tool_names or "tool" in action):
+        action = {**action, "action": "tool", "tool": action.get("tool", name)}
+    return action
+
+
 def run_agent(task: str, context: dict, tools: list[ToolSpec],
               ledger: RunLedger | None = None,
-              max_steps: int = config.AGENT_MAX_STEPS) -> AgentRun:
-    model = config.get_model_client()
+              max_steps: int = config.AGENT_MAX_STEPS,
+              output_spec: str = "",
+              seed_observations: list[dict] | None = None,
+              seed_citations: list[Citation] | None = None) -> AgentRun:
+    """seed_observations: tool results the check node computed deterministically
+    up front (plan-pinned locators leave the agent nothing to decide there).
+    Seeding shortens the tool chain, which is both cheaper and less variant."""
+    model = config.get_model_client(seat=context.get("task_type"))
     registry = {t.name: t for t in tools}
-    system = SYSTEM_PROMPT + "\n".join(f"- {t.name}: {t.description}" for t in tools)
-    observations: list[dict] = []
-    citations: list[Citation] = []
+    # The exact argument names come from the function itself - a model must
+    # never have to guess a signature.
+    def _sig(t: ToolSpec) -> str:
+        import inspect
+        try:
+            params = ", ".join(inspect.signature(t.fn).parameters)
+        except (TypeError, ValueError):
+            params = ""
+        return f"- {t.name}({params}): {t.description}"
+    system = SYSTEM_PROMPT + "\n".join(_sig(t) for t in tools)
+    if output_spec:
+        system += ("\nWhen you conclude, the \"output\" object MUST have exactly "
+                   f"this shape: {output_spec}")
+    observations: list[dict] = list(seed_observations or [])
+    citations: list[Citation] = list(seed_citations or [])
 
     for step in range(max_steps):
         state = {"task": task, "context": context, "observations": observations}
         user = f"TASK: {task}\nSTATE_JSON: {json.dumps(state, default=str)}"
         raw = model.complete(system, user)
-        try:
-            action = json.loads(raw)
-        except json.JSONDecodeError as e:
-            raise AgentError(f"model returned non-JSON action: {raw[:200]}") from e
+        action = _parse_action(raw, set(registry))
 
         if action.get("action") == "final":
             if ledger:
@@ -80,6 +122,15 @@ def run_agent(task: str, context: dict, tools: list[ToolSpec],
                                  "result": {"error": f"unknown tool {tool_name}"}})
             continue
         args = action.get("args", {})
+        # Deterministic loop-breaker: an identical successful call is never
+        # re-executed - the model is told to conclude from what it has.
+        if any(o["tool"] == tool_name and o["args"] == args
+               and "error" not in o["result"] for o in observations):
+            observations.append({"tool": tool_name, "args": args,
+                                 "result": {"error": "duplicate call: this exact result is "
+                                            "already in observations - respond with your "
+                                            "final conclusion now"}})
+            continue
         try:
             result = spec.fn(**args)
         except Exception as e:

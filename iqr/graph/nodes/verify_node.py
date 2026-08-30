@@ -128,9 +128,12 @@ def blinded_verify(finding: Finding, check: CheckDef, graph: EvidenceGraph,
         {"task_type": "verify", "check_type": check.check_type,
          "claimed_verdict": finding.verdict,
          "clause": check.model_dump(), "citations": [c.locator_str() for c in vin.citations]},
-        [ToolSpec(tool_name, "re-perform the check from cited evidence alone",
+        [ToolSpec(tool_name, "re-perform the check from cited evidence alone "
+                             "(takes no arguments: call with \"args\": {})",
                   numeric_tool_fn if check.check_type == "numeric" else tool_fn)],
-        ledger)
+        ledger,
+        output_spec='{"agree": true | false, "note": "<one sentence: what the '
+                    're-performance found and whether it matches the claimed verdict>"}')
     return bool(run.final.get("agree")), run.final.get("note", "")
 
 

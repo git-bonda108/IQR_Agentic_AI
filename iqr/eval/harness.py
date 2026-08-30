@@ -21,8 +21,19 @@ REPRO_RUNS = 2
 
 
 def _verdict_fingerprint(v: Verdict) -> str:
-    """Everything that must be identical run over run (run_id excluded)."""
-    payload = v.model_dump(exclude={"run_id"})
+    """The semantic verdict that must be identical run over run: the result,
+    each check's verdict, and the deduplicated set of evidence it cites.
+    Excluded on purpose: run_id; free-text `detail` (a live model phrases the
+    same grounded conclusion differently); citation ORDER and the
+    path-numbered computed_values keys (an agent may read the same cells in a
+    different order - same facts, different traversal). The reproducibility
+    law binds the verdict and its evidence base, not the walk that got there."""
+    findings = sorted(
+        ({"check_id": f.check_id, "verdict": f.verdict,
+          "evidence": sorted({c.locator_str() for c in f.citations})}
+         for f in v.findings), key=lambda f: f["check_id"])
+    payload = {"control_id": v.control_id, "plan_version": v.plan_version,
+               "result": v.result, "findings": findings, "gaps": sorted(v.gaps)}
     return json.dumps(payload, sort_keys=True, default=str)
 
 
@@ -51,7 +62,9 @@ def run_eval(plans: dict[str, ValidationPlan], fixtures_root: Path,
                     for c in f.citations:
                         total_citations += 1
                         valid_citations += int(resolve(c, graph))
-                details["clean"][control_id] = verdict.result
+                details["clean"][control_id] = {
+                    "result": verdict.result,
+                    "checks": {f.check_id: f.verdict for f in verdict.findings}}
         repro_total += 1
         repro_ok += int(len(set(prints)) == 1)
 

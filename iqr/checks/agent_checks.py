@@ -17,6 +17,12 @@ from iqr.tools import ocr_read as ocr
 from iqr.tools.cell_read import CellNotFound, cell_read
 from iqr.tools.timestamp import parse_timestamp
 
+# Real models need the output contract stated; the stub encodes it implicitly.
+CHECK_OUTPUT_SPEC = ('{"verdict": "pass" | "fail" | "gap", "detail": "<one factual '
+                     'sentence stating the tool-obtained values behind the verdict>"}'
+                     ' - use "gap" when required evidence is missing or unreadable, '
+                     'never invent a value')
+
 
 def _tool_cell_read(graph):
     def fn(file_hash: str, sheet: str, cell: str) -> dict:
@@ -73,7 +79,8 @@ def run_vision_check(check: CheckDef, graph: EvidenceGraph, matches: dict,
                           "sheet": tgt["sheet"], "cell": tgt["cell"]},
                "tolerance": p.get("tolerance", 0.01)}
     run = run_agent(f"vision tie-out {check.id}", context,
-                    [_tool_ocr_labeled_number(graph), _tool_cell_read(graph)], ledger)
+                    [_tool_ocr_labeled_number(graph), _tool_cell_read(graph)], ledger,
+                    output_spec=CHECK_OUTPUT_SPEC)
     return _finding_from_agent(check, run, graph)
 
 
@@ -93,9 +100,23 @@ def run_temporal_check(check: CheckDef, graph: EvidenceGraph, matches: dict,
                                 "sheet": e["sheet"], "cell": e["cell"]},
                "earlier_tz": e.get("tz", "UTC"),
                "later_email_message_id": later_match["message_id"]}
+    # The earlier stamp's locator is plan-pinned - nothing for the agent to
+    # decide. Prefetch it deterministically and seed the observation, so the
+    # agent's chain is email facts -> ordering only.
+    try:
+        value, cite = cell_read(graph, context["earlier_cell"]["file_hash"],
+                                e["sheet"], e["cell"])
+    except CellNotFound as err:
+        return gap_finding(check, graph,
+                           f"{check.id}: IPE timestamp cell unreadable - {err}")
+    seed = [{"tool": "cell_read",
+             "args": {"file_hash": context["earlier_cell"]["file_hash"],
+                      "sheet": e["sheet"], "cell": e["cell"]},
+             "result": {"value": value}}]
     run = run_agent(f"temporal ordering {check.id}", context,
                     [_tool_cell_read(graph), _tool_email_signoff_facts(graph),
-                     _tool_timestamp_order()], ledger)
+                     _tool_timestamp_order()], ledger, output_spec=CHECK_OUTPUT_SPEC,
+                    seed_observations=seed, seed_citations=[cite])
     return _finding_from_agent(check, run, graph)
 
 
@@ -128,7 +149,8 @@ def run_signoff_check(check: CheckDef, graph: EvidenceGraph, matches: dict,
         context["prepared_at_utc"] = parse_timestamp(str(value), assume_tz=pa.get("tz", "UTC")).isoformat()
         pre_cites.append(cite)
     run = run_agent(f"sign-off / SoD {check.id}", context,
-                    [_tool_email_signoff_facts(graph)], ledger)
+                    [_tool_email_signoff_facts(graph)], ledger,
+                    output_spec=CHECK_OUTPUT_SPEC)
     finding = _finding_from_agent(check, run, graph)
     finding.citations.extend(pre_cites)
     return finding

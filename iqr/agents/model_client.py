@@ -50,6 +50,59 @@ class DaVinciClient(ModelClient):
         return resp.json()["choices"][0]["message"]["content"]
 
 
+class AzureFoundryClient(ModelClient):
+    """Azure AI Foundry model seat: a chat-completions deployment on a Foundry
+    project (Azure OpenAI wire format - `api-key` header, api-version query).
+    Same tiny protocol as every other backend; temperature stays pinned to 0."""
+
+    name = "foundry"
+
+    def __init__(self, endpoint: str, api_key: str, deployment: str,
+                 api_version: str, temperature: float, max_tokens: int):
+        if not endpoint:
+            raise RuntimeError("foundry: AZURE_FOUNDRY_ENDPOINT not configured")
+        if "/chat/completions" in endpoint:
+            self.api_url = endpoint          # caller supplied the full route
+        else:
+            if not deployment:
+                raise RuntimeError("foundry: AZURE_FOUNDRY_DEPLOYMENT not configured")
+            self.api_url = (f"{endpoint.rstrip('/')}/openai/deployments/"
+                            f"{deployment}/chat/completions?api-version={api_version}")
+        self.api_key = api_key
+        self.temperature, self.max_tokens = temperature, max_tokens
+
+    _reasoning_params = False   # set once a deployment rejects pinned params
+
+    def complete(self, system: str, user: str) -> str:
+        config.record_model_call()
+        messages = [{"role": "system", "content": system},
+                    {"role": "user", "content": user}]
+        if not self._reasoning_params:
+            resp = httpx.post(
+                self.api_url,
+                headers={"api-key": self.api_key,
+                         "Authorization": f"Bearer {self.api_key}"},
+                json={"messages": messages,
+                      "temperature": self.temperature, "max_tokens": self.max_tokens,
+                      "seed": 42},   # best-effort determinism on top of temp 0
+                timeout=120)
+            if resp.status_code != 400 or "unsupported" not in resp.text.lower():
+                resp.raise_for_status()
+                return resp.json()["choices"][0]["message"]["content"]
+            # Reasoning-family deployment (o-series / gpt-5 / model-router):
+            # rejects temperature/max_tokens - adapt once, remember for the run.
+            self._reasoning_params = True
+        resp = httpx.post(
+            self.api_url,
+            headers={"api-key": self.api_key,
+                     "Authorization": f"Bearer {self.api_key}"},
+            json={"messages": messages,
+                  "max_completion_tokens": max(self.max_tokens, 4096)},
+            timeout=180)
+        resp.raise_for_status()
+        return resp.json()["choices"][0]["message"]["content"]
+
+
 class FallbackModelClient(ModelClient):
     """Multi-mode fallback: try each backend in order; the first that answers
     wins. Which backend served each call is recorded (last_served) so the run

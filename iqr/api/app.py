@@ -47,6 +47,7 @@ class AdjudicationRequest(BaseModel):
     human_verdict: str
     rationale: str
     run_id: str
+    iqr_verdict: str | None = None   # what IQR concluded - the learning reward
 
 
 _drafts: dict[str, ValidationPlan] = {}
@@ -194,34 +195,49 @@ def api_pack(run_id: str):
 
 # ---------------------------------------------------------------- eval
 
-def _eval_worker() -> None:
+def _eval_worker(batch: int | None = None) -> None:
     try:
         from tests.fixtures.build_fixtures import FIXTURES, build_all
+        from iqr.eval.batch import run_eval_batch
         from iqr.eval.harness import run_eval
         build_all()
         plans = {}
+        # The harness runs the golden fixtures: use the fixture-matched 1.0.0
+        # plans, never a later plan frozen against real packages.
         for cid in ("C23024", "C10032", "C10075"):
-            v = latest_version(cid)
-            if v is None:
+            try:
+                plans[cid] = load_plan(cid, "1.0.0")
+            except FileNotFoundError:
                 _eval_state.update(status="error",
-                                   error=f"no approved plan for {cid}")
+                                   error=f"no approved 1.0.0 plan for {cid}")
                 return
-            plans[cid] = load_plan(cid, v)
-        report = run_eval(plans, FIXTURES)
-        _eval_state.update(status="done", gates_passed=report.gates_passed,
-                           summary=report.summary(),
-                           metrics=getattr(report, "model_dump", lambda: vars(report))())
+        if batch and batch > 1:
+            report = run_eval_batch(plans, FIXTURES, n=batch)
+            _eval_state.update(status="done", gates_passed=report.batch_gates_passed,
+                               summary=report.summary(),
+                               batch={"runs": report.runs,
+                                      "gate_scores": report.gate_scores,
+                                      "check_confidence": report.check_confidence})
+        else:
+            report = run_eval(plans, FIXTURES)
+            _eval_state.update(status="done", gates_passed=report.gates_passed,
+                               summary=report.summary())
     except Exception as e:
         _eval_state.update(status="error", error=f"{type(e).__name__}: {e}")
 
 
+class EvalRequest(BaseModel):
+    batch: int | None = None    # >1 -> batch eval with scoring + confidence
+
+
 @app.post("/api/eval")
-def api_eval_start():
+def api_eval_start(req: EvalRequest | None = None):
     if _eval_state.get("status") == "running":
         return _eval_state
     _eval_state.clear()
     _eval_state.update(status="running")
-    threading.Thread(target=_eval_worker, daemon=True).start()
+    threading.Thread(target=_eval_worker, daemon=True,
+                     args=((req.batch if req else None),)).start()
     return _eval_state
 
 
@@ -241,7 +257,23 @@ def api_exceptions():
 def api_adjudicate(req: AdjudicationRequest):
     return GoldenLibrary().record_adjudication(
         req.control_id, req.check_id, req.pattern,
-        req.human_verdict, req.rationale, req.run_id)
+        req.human_verdict, req.rationale, req.run_id,
+        iqr_verdict=req.iqr_verdict)
+
+
+@app.post("/api/learn")
+def api_learn():
+    """Offline reinforcement pass: fold recorded adjudications into the
+    per-check confidence posteriors. Idempotent."""
+    from iqr.learn.reinforce import learn_from_adjudications
+    return learn_from_adjudications()
+
+
+@app.get("/api/confidence")
+def api_confidence():
+    """Per-check earned confidence + review priority (most uncertain first)."""
+    from iqr.learn.reinforce import ReinforcementState
+    return ReinforcementState().review_priorities()
 
 
 @app.get("/", response_class=HTMLResponse)

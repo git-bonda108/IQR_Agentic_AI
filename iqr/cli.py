@@ -55,17 +55,33 @@ def main(argv: list[str] | None = None) -> int:
     if cmd == "eval":
         from tests.fixtures.build_fixtures import FIXTURES, build_all
         from iqr.eval.harness import run_eval
-        from iqr.plan.review import latest_version, load_plan
+        from iqr.plan.review import load_plan
         build_all()
         plans = {}
+        # The harness runs the synthesized golden fixtures, so it must use the
+        # fixture-matched 1.0.0 plans - not a later plan frozen for real packages.
         for cid in ("C23024", "C10032", "C10075"):
-            v = latest_version(cid)
-            if v is None:
-                print(f"no approved plan for {cid}; compile+approve first"); return 1
-            plans[cid] = load_plan(cid, v)
+            try:
+                plans[cid] = load_plan(cid, "1.0.0")
+            except FileNotFoundError:
+                print(f"no approved 1.0.0 plan for {cid}; compile+approve first"); return 1
+        if rest[:1] == ["--batch"]:
+            from iqr.eval.batch import run_eval_batch
+            n = int(rest[1]) if len(rest) > 1 else 3
+            report = run_eval_batch(plans, FIXTURES, n=n)
+            print(report.summary())
+            return 0 if report.batch_gates_passed else 1
         report = run_eval(plans, FIXTURES)
         print(report.summary())
         return 0 if report.gates_passed else 1
+    if cmd == "learn":
+        from iqr.learn.reinforce import learn_from_adjudications
+        result = learn_from_adjudications()
+        print(f"applied {result['applied']} new adjudication(s) across {result['arms']} check(s)")
+        for r in result["priorities"][:10]:
+            print(f"  {r['control_id']}/{r['check_id']}: confidence {r['confidence']:.2f} "
+                  f"({r['observations']} obs) - review priority {r['uncertainty']:.4f}")
+        return 0
     if cmd == "testmodel":
         import json as _json
         from iqr import config
