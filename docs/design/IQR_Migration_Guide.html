@@ -1,0 +1,483 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>IQR Migration &amp; Deployment Guide</title>
+<style>
+  /* Brand: Electric Blue #0096D6 / black / white · Helvetica */
+  :root{
+    --blue:#0096D6; --blue-dark:#00699B; --blue-tint:#E6F4FA;
+    --ink:#101820; --grey:#5A6570; --line:#D5DEE3; --codebg:#F0F4F6;
+    --ok:#177245; --warn:#9A6206;
+  }
+  *{box-sizing:border-box}
+  html{-webkit-print-color-adjust:exact; print-color-adjust:exact}
+  body{font:10.5pt/1.55 Helvetica, "Helvetica Neue", Arial, sans-serif;
+       color:var(--ink); margin:0; background:#fff;}
+  @page{ size:Letter; margin:18mm 16mm 16mm 16mm; }
+  h1,h2,h3{line-height:1.2; page-break-after:avoid}
+  h1{font-size:24pt; font-weight:700; margin:.2em 0 .3em}
+  h2{font-size:15pt; font-weight:700; color:var(--blue-dark);
+     border-bottom:2.5pt solid var(--blue); padding-bottom:4pt; margin:1.6em 0 .6em}
+  h3{font-size:11.5pt; font-weight:700; margin:1.2em 0 .4em}
+  p{margin:.45em 0; max-width:100%}
+  .cover{page-break-after:always; padding-top:60mm}
+  .brandbar{height:10pt; background:var(--blue); margin:-18mm -16mm 12mm -16mm}
+  .eyebrow{font-size:8.5pt; letter-spacing:.18em; text-transform:uppercase;
+           color:var(--blue-dark); font-weight:700}
+  .subtitle{font-size:12pt; color:var(--grey); max-width:150mm}
+  .covermeta{margin-top:24mm; font-size:9.5pt; color:var(--grey)}
+  .toc{page-break-after:always}
+  .toc ol{font-size:10.5pt; line-height:2; padding-left:1.4em}
+  code{font:9pt "Courier New", Courier, monospace; background:var(--codebg);
+       padding:.12em .35em; border-radius:2pt}
+  pre{font:8.6pt/1.5 "Courier New", Courier, monospace; background:var(--ink);
+      color:#EAF6FC; padding:8pt 10pt; border-radius:4pt; overflow-x:auto;
+      white-space:pre-wrap; word-break:break-all; page-break-inside:avoid;
+      border-left:4pt solid var(--blue)}
+  .why{background:var(--blue-tint); border-left:4pt solid var(--blue);
+       padding:6pt 10pt; margin:.6em 0; page-break-inside:avoid}
+  .why b:first-child{color:var(--blue-dark)}
+  .expect{border:1pt solid var(--line); border-left:4pt solid var(--ok);
+          padding:5pt 10pt; margin:.5em 0; font-size:9.5pt; page-break-inside:avoid}
+  .expect b{color:var(--ok)}
+  table{border-collapse:collapse; width:100%; margin:.7em 0; font-size:9.3pt;
+        page-break-inside:avoid}
+  th{text-align:left; font-size:8pt; letter-spacing:.08em; text-transform:uppercase;
+     color:#fff; background:var(--blue); padding:4pt 7pt}
+  td{border-bottom:.75pt solid var(--line); padding:4.5pt 7pt; vertical-align:top}
+  tr:nth-child(even) td{background:#F7FBFD}
+  ul,ol{margin:.4em 0; padding-left:1.5em}
+  li{margin:.25em 0}
+  .step{font-weight:700; color:var(--blue-dark)}
+  .footer-note{color:var(--grey); font-size:9pt; border-top:1pt solid var(--line);
+               margin-top:2em; padding-top:.7em}
+  .pagebreak{page-break-before:always}
+</style>
+</head>
+<body>
+
+<div class="brandbar"></div>
+
+<div class="cover">
+  <div class="eyebrow">IQR · Intelligent Quality Review</div>
+  <h1>Migration &amp; Deployment Guide</h1>
+  <p class="subtitle">From an empty machine to a fully working, Azure-connected
+  agentic validation platform — every step as a terminal command, with what it
+  does and what you should see. No portal clicking required.</p>
+  <div class="covermeta">
+    Repository&nbsp;&nbsp;<code>https://github.com/git-bonda108/IQR_Agentic_AI</code><br>
+    Version 1.0 · September 2026 · Applies to macOS, Linux, and Windows<br>
+    Companion documents: Design Document v4 · UAT Guide · Production Standards
+  </div>
+</div>
+
+<div class="toc">
+  <h2>Contents</h2>
+  <ol>
+    <li>What you are building — the modules and what each accomplishes</li>
+    <li>Prerequisites — install the five tools</li>
+    <li>Clone and install</li>
+    <li>Prove it offline first (no cloud, no keys)</li>
+    <li>Sign in to Azure — and what to do when the login or tenant changes</li>
+    <li>Create every Azure resource from the command line</li>
+    <li>Model deployments — which model in which seat, and why</li>
+    <li>Connect the machine: the .env file, variable by variable</li>
+    <li>Upload the data estate — what goes in which container</li>
+    <li>Seed the knowledge index (Foundry IQ)</li>
+    <li>Run the platform end to end</li>
+    <li>Deploy the web console to Azure + secure it (app registration explained)</li>
+    <li>Identity &amp; tenant-change playbook</li>
+    <li>Troubleshooting</li>
+    <li>Appendix — the whole thing as one command sequence</li>
+  </ol>
+</div>
+
+<h2>1 · What you are building</h2>
+<p>IQR validates internal-control evidence packages end to end: a reviewer
+uploads the period's evidence (workbooks, approval emails, ZIPs, screenshots,
+in any mix), IQR understands the package, runs the frozen validation plan, and
+produces an audit-ready pack in which every claim carries a citation to the
+exact cell, email line, or image it came from. Each module below is something
+you will touch during this guide:</p>
+<table>
+  <tr><th>Module</th><th>What it accomplishes</th></tr>
+  <tr><td><code>iqr/ingest</code> + <code>iqr/intake.py</code></td><td>Unpacks the nested evidence tree, SHA-256 fingerprints every file, extracts every cell/email line/image, infers which control the package belongs to, and narrates what it found — before anything runs</td></tr>
+  <tr><td><code>iqr/graph</code></td><td>The fixed validation pipeline: ingest → match → sentinel → checks (parallel) → blinded verify → adjudicate. Match works by filename first, then by meaning (embeddings)</td></tr>
+  <tr><td><code>iqr/tools</code> + <code>iqr/checks</code></td><td>Deterministic tools compute every number/timestamp; AI agents decide only what evidence means. Numbers are never model output</td></tr>
+  <tr><td><code>iqr/agents</code></td><td>The model client: routes each agent seat to its Azure AI Foundry deployment, with a deterministic offline stub as permanent fallback</td></tr>
+  <tr><td><code>iqr/knowledge</code></td><td>Control knowledge base + Golden Library (adjudication precedents) + the embedding seat, served by Azure AI Search</td></tr>
+  <tr><td><code>iqr/eval</code> + <code>iqr/learn</code></td><td>The five-gate evaluation harness (with batch scoring and per-check confidence) and the reinforcement learner that turns human adjudications into earned confidence</td></tr>
+  <tr><td><code>iqr/api</code> + <code>webapp/</code></td><td>The reviewer console: upload → package story → run → live ledger → verdict → audit pack → governance</td></tr>
+  <tr><td><code>scripts/azure</code></td><td>Provisioning, knowledge seeding, and web-app bundling scripts used throughout this guide</td></tr>
+</table>
+
+<h2>2 · Prerequisites — install the five tools</h2>
+<div class="why"><b>Why:</b> Python runs the platform; git fetches it; the
+Azure CLI creates and connects cloud resources from the terminal; Tesseract
+performs OCR for screenshot checks; VS Code is optional but convenient.</div>
+<p><span class="step">macOS</span> (using Homebrew — install it first from brew.sh if absent):</p>
+<pre>brew install python@3.12 git azure-cli tesseract</pre>
+<p><span class="step">Windows</span> (PowerShell, using the built-in winget):</p>
+<pre>winget install Python.Python.3.12 Git.Git Microsoft.AzureCLI UB-Mannheim.TesseractOCR</pre>
+<p><span class="step">Linux</span> (Debian/Ubuntu; Azure CLI via Microsoft's script):</p>
+<pre>sudo apt update && sudo apt install -y python3.12 python3.12-venv git tesseract-ocr
+curl -sL https://aka.ms/InstallAzureCLIDeb | sudo bash</pre>
+<p>Verify each tool answers (run all four):</p>
+<pre>python3 --version && git --version && az version && tesseract --version</pre>
+<div class="expect"><b>Expected:</b> four version strings, no “command not
+found”. Python must be 3.12 or newer.</div>
+<div class="why"><b>Do not clone into a cloud-synced folder</b> (OneDrive,
+iCloud Drive). File-sync tools evict file contents to the cloud and reads
+stall for minutes. Use a plain path such as <code>C:\src</code> or
+<code>~/src</code>.</div>
+<p><b>Windows note:</b> wherever this guide writes
+<code>.venv/bin/python</code>, type <code>.venv\Scripts\python</code>.</p>
+
+<h2>3 · Clone and install</h2>
+<div class="why"><b>Why:</b> the repository is the entire deployable unit —
+code, tests, frozen plans, documentation, provisioning scripts. The virtual
+environment (<code>.venv</code>) is a private Python installation for this
+project so nothing touches your system Python.</div>
+<pre>git clone https://github.com/git-bonda108/IQR_Agentic_AI.git IQR
+cd IQR
+python3 -m venv .venv
+.venv/bin/pip install -e .</pre>
+<div class="expect"><b>Expected:</b> the clone prints object counts; pip
+resolves ~25 packages and ends with “Successfully installed iqr-0.1.0 …”.
+Takes 2–5 minutes on a normal connection.</div>
+
+<h2>4 · Prove it offline first — no cloud, no keys</h2>
+<div class="why"><b>Why:</b> IQR ships a deterministic offline model stub, so
+the entire platform — ingestion, checks, verification, evaluation — runs with
+zero network access. If this step is green, the platform is healthy on this
+machine, and any later problem is by definition an Azure-connection problem,
+not a code problem. This is your acceptance gate.</div>
+<pre>.venv/bin/python tests/fixtures/build_fixtures.py
+.venv/bin/python -m pytest tests/ -q</pre>
+<div class="expect"><b>Expected:</b> the first command builds three synthetic
+“golden” control packages silently; the second prints
+<code>61 passed</code> in well under a minute.</div>
+<p>Optionally see the console right now, fully offline:</p>
+<pre>.venv/bin/python -m iqr.cli serve</pre>
+<div class="expect"><b>Expected:</b> “Uvicorn running on
+http://127.0.0.1:8400” — open that address in a browser, drag the contents of
+<code>tests/fixtures/controls/C23024/package</code> into the upload zone, and
+watch intake, validation, and the audit pack work with no cloud at all.
+Ctrl-C stops the server.</div>
+
+<h2 class="pagebreak">5 · Sign in to Azure — and when the login or tenant changes</h2>
+<div class="why"><b>Why:</b> everything cloud-side happens under an Azure
+<i>subscription</i> (the billing boundary) inside a <i>tenant</i> (the
+identity boundary — one organization's directory of users and apps). The CLI
+must hold a token for the right tenant and subscription before any resource
+command works.</div>
+<pre>az login</pre>
+<div class="expect"><b>Expected:</b> a browser window opens for sign-in (with
+MFA if the tenant requires it); the terminal then lists the subscriptions your
+account can use and marks the default with <code>*</code>.</div>
+<p>Pin the subscription explicitly (never rely on the default):</p>
+<pre>az account set --subscription "&lt;subscription name or id&gt;"
+az account show --query "{user:user.name, tenant:tenantId, sub:name}" -o json</pre>
+<div class="expect"><b>Expected:</b> JSON echoing your signed-in user, tenant
+id, and subscription — confirm all three before continuing.</div>
+<h3>If the Azure login or tenant changes later</h3>
+<p>Nothing in the code is tenant-specific. Only three things are bound to a
+tenant, and all three are rebuilt by commands in this guide:</p>
+<table>
+  <tr><th>Tenant-bound item</th><th>What to do in the new tenant</th></tr>
+  <tr><td>The CLI token</td><td><code>az logout</code> then <code>az login --tenant &lt;new-tenant-id&gt;</code></td></tr>
+  <tr><td>Role assignments (who may write blobs, etc.)</td><td>Re-run the <code>az role assignment create</code> commands in §9 for the new identities</td></tr>
+  <tr><td>The console's app registration (§12)</td><td>Create a new registration in the new tenant and update the web app's auth settings — two commands, shown in §12</td></tr>
+</table>
+<p>If resources themselves move to a new subscription, simply re-run §6–§10
+there — provisioning is scripted and idempotent, and the data estate re-uploads
+from your local <code>data/</code> tree or transfers with
+<code>azcopy</code>. Budget one hour for a complete rebuild in a fresh
+subscription.</p>
+
+<h2>6 · Create every Azure resource from the command line</h2>
+<div class="why"><b>Why each resource exists:</b> a <b>resource group</b> is a
+folder holding everything (delete it, and everything goes — clean teardown); a
+<b>storage account</b> holds blob containers (files) and tables (rows); an
+<b>AI Foundry account + project</b> hosts the model deployments; <b>AI
+Search</b> hosts the knowledge index the agents retrieve against.</div>
+<p><span class="step">6.1</span> Set your names once (storage and search names
+are global across Azure — add your own suffix; lowercase, no dashes in the
+storage name):</p>
+<pre>export LOC=eastus2  RG=rg-iqr-sox  SA=stiqrsox&lt;suffix&gt;  FOUNDRY=iqr-foundry-&lt;suffix&gt;  SEARCH=iqr-search-&lt;suffix&gt;</pre>
+<p><span class="step">6.2</span> Resource group:</p>
+<pre>az group create -n $RG -l $LOC</pre>
+<div class="expect"><b>Expected:</b> JSON with <code>"provisioningState": "Succeeded"</code>.</div>
+<p><span class="step">6.3</span> Storage account, blob containers, and table storage.
+The six containers map to IQR's stores; the two tables hold the run index and
+the human-in-the-loop exception queue:</p>
+<pre>az storage account create -n $SA -g $RG -l $LOC --sku Standard_LRS \
+  --kind StorageV2 --min-tls-version TLS1_2 --allow-blob-public-access false
+
+KEY=$(az storage account keys list -n $SA -g $RG --query "[0].value" -o tsv)
+
+for c in evidence-store run-ledgers audit-packs plans knowledge source-evidence; do
+  az storage container create -n $c --account-name $SA --account-key "$KEY"
+done
+
+az storage table create -n runs       --account-name $SA --account-key "$KEY"
+az storage table create -n exceptions --account-name $SA --account-key "$KEY"</pre>
+<div class="expect"><b>Expected:</b> <code>"created": true</code> once per
+container and table (eight in total).</div>
+<table>
+  <tr><th>Store</th><th>Holds</th></tr>
+  <tr><td>evidence-store</td><td>Immutable evidence files named by their SHA-256 — the chain of custody</td></tr>
+  <tr><td>run-ledgers</td><td>Append-only JSONL of every run — the replayable audit trail</td></tr>
+  <tr><td>audit-packs / plans</td><td>Deliverable zips · frozen approved validation plans</td></tr>
+  <tr><td>knowledge / source-evidence</td><td>Knowledge documents · raw incoming packages</td></tr>
+  <tr><td>tables: runs / exceptions</td><td>Queryable run index · exception queue rows (pennies to operate)</td></tr>
+</table>
+<p><span class="step">6.4</span> AI Foundry account and project:</p>
+<pre>az cognitiveservices account create -n $FOUNDRY -g $RG -l $LOC \
+  --kind AIServices --sku S0 --custom-domain $FOUNDRY
+
+SUB=$(az account show --query id -o tsv)
+az rest --method put \
+  --url "https://management.azure.com/subscriptions/$SUB/resourceGroups/$RG/providers/Microsoft.CognitiveServices/accounts/$FOUNDRY/projects/iqr-sox?api-version=2025-04-01-preview" \
+  --body '{"location":"'$LOC'","identity":{"type":"SystemAssigned"},"properties":{"description":"IQR validation"}}'</pre>
+<div class="expect"><b>Expected:</b> both return
+<code>"provisioningState": "Succeeded"</code>. If the account name is taken,
+change the suffix.</div>
+<p><span class="step">6.5</span> AI Search (free tier is enough to start; if
+the region is out of capacity, retry with another region for this one
+service):</p>
+<pre>az search service create -n $SEARCH -g $RG -l $LOC --sku free</pre>
+<div class="expect"><b>Expected:</b> <code>"provisioningState": "succeeded"</code>
+(this one can take a few minutes).</div>
+<div class="why"><b>Shortcut:</b> <code>bash scripts/azure/provision.sh</code>
+runs 6.2–6.5 in one shot and prints the .env block to paste. The manual steps
+above are what it does inside.</div>
+
+<h2 class="pagebreak">7 · Model deployments — which model in which seat, and why</h2>
+<div class="why"><b>Why multiple models:</b> IQR routes each agent “seat” to
+the model best suited to it. Judgment-light check agents need speed, low cost,
+and — critically — <b>temperature 0</b> for reproducibility. Verification
+benefits from a deeper reasoning model. Evidence matching needs an embedding
+model, not a chat model.</div>
+<pre>az cognitiveservices account deployment create -n $FOUNDRY -g $RG \
+  --deployment-name gpt-41-mini --model-name gpt-4.1-mini --model-version 2025-04-14 \
+  --model-format OpenAI --sku-name GlobalStandard --sku-capacity 10
+
+az cognitiveservices account deployment create -n $FOUNDRY -g $RG \
+  --deployment-name gpt-5-mini --model-name gpt-5-mini --model-version 2025-08-07 \
+  --model-format OpenAI --sku-name GlobalStandard --sku-capacity 50
+
+az cognitiveservices account deployment create -n $FOUNDRY -g $RG \
+  --deployment-name model-router --model-name model-router --model-version 2025-11-18 \
+  --model-format OpenAI --sku-name GlobalStandard --sku-capacity 10
+
+az cognitiveservices account deployment create -n $FOUNDRY -g $RG \
+  --deployment-name text-embedding-3-small --model-name text-embedding-3-small \
+  --model-version 1 --model-format OpenAI --sku-name GlobalStandard --sku-capacity 100</pre>
+<div class="expect"><b>Expected:</b> <code>Succeeded</code> four times. If you
+see <code>InsufficientQuota</code>, list what your subscription can deploy with
+<code>az cognitiveservices usage list -l $LOC -o table</code> and substitute a
+model with headroom; if you see <code>ServiceModelDeprecating</code>, use the
+newer version the error implies.</div>
+<table>
+  <tr><th>Deployment</th><th>Seat</th><th>Why this model</th></tr>
+  <tr><td>gpt-41-mini</td><td>Vision, temporal, sign-off check agents</td><td>Fast, inexpensive, supports temperature 0 + seed — the reproducibility law binds these seats</td></tr>
+  <tr><td>gpt-5-mini</td><td>Blinded verifier</td><td>Reasoning-class skeptic; re-performs findings from citations alone. (Reasoning models don't accept temperature 0 — acceptable here because the verifier only re-derives from deterministic tool output)</td></tr>
+  <tr><td>model-router</td><td>Plan compiler (design time)</td><td>Routes each request to the best underlying model for quality — worth it for the hardest, least-frequent task</td></tr>
+  <tr><td>text-embedding-3-small</td><td>Semantic evidence matching</td><td>Relates real-world filenames and content (sheet names, email subjects) to what the plan expects; cheap at scale</td></tr>
+</table>
+<div class="why"><b>Model governance:</b> when a newly approved model becomes
+available, it earns a seat through a fixed graduation: add its deployment →
+route one seat via <code>IQR_FOUNDRY_DEPLOYMENT_&lt;SEAT&gt;</code> → run
+<code>.venv/bin/python -m iqr.cli eval --batch 3</code> → all five gates green
+→ keep it. The run ledger attributes every call to its backend, so a seat
+change is an auditable event.</div>
+
+<h2>8 · Connect the machine: the .env file, variable by variable</h2>
+<div class="why"><b>Why:</b> <code>.env</code> holds this machine's
+connection settings. It is listed in <code>.gitignore</code> and must never be
+committed — the repository carries a template instead.</div>
+<pre>cp .env.example .env</pre>
+<p>Fetch the three secrets from the CLI and edit <code>.env</code>:</p>
+<pre>az cognitiveservices account keys list -n $FOUNDRY -g $RG --query key1 -o tsv
+az search admin-key show --service-name $SEARCH -g $RG --query primaryKey -o tsv
+az storage account keys list -n $SA -g $RG --query "[0].value" -o tsv</pre>
+<table>
+  <tr><th>Variable</th><th>Set to / meaning</th></tr>
+  <tr><td>IQR_MODEL</td><td><code>auto</code> — try Foundry first, fall back to the offline stub (never blocks)</td></tr>
+  <tr><td>AZURE_FOUNDRY_ENDPOINT</td><td><code>https://&lt;foundry-name&gt;.openai.azure.com</code></td></tr>
+  <tr><td>AZURE_FOUNDRY_API_KEY</td><td>first key from the first command above</td></tr>
+  <tr><td>AZURE_FOUNDRY_DEPLOYMENT</td><td><code>gpt-41-mini</code> (the default seat)</td></tr>
+  <tr><td>AZURE_FOUNDRY_EMBEDDING_DEPLOYMENT</td><td><code>text-embedding-3-small</code></td></tr>
+  <tr><td>IQR_FOUNDRY_DEPLOYMENT_VERIFY</td><td><code>gpt-5-mini</code> — per-seat routing for the verifier</td></tr>
+  <tr><td>IQR_FOUNDRY_DEPLOYMENT_PLAN_COMPILE</td><td><code>model-router</code></td></tr>
+  <tr><td>FOUNDRY_IQ_ENDPOINT / _API_KEY</td><td><code>https://&lt;search-name&gt;.search.windows.net</code> / the search admin key</td></tr>
+  <tr><td>FOUNDRY_IQ_KNOWLEDGE_BASE</td><td><code>iqr-knowledge</code></td></tr>
+  <tr><td>IQR_AZ_STORAGE_ACCOUNT / _KEY</td><td>the storage name / key</td></tr>
+</table>
+<p>Prove the connection:</p>
+<pre>.venv/bin/python -m iqr.cli testmodel</pre>
+<div class="expect"><b>Expected:</b> <code>answered by: foundry</code>. If it
+says <code>answered by: stub</code>, an endpoint or key in .env is wrong —
+the platform still works, it is telling you visibly that it fell back.</div>
+
+<h2 class="pagebreak">9 · Upload the data estate — what goes in which container</h2>
+<div class="why"><b>Why sign-in–based upload:</b> granting your own account a
+data role and using <code>--auth-mode login</code> keeps storage keys off the
+command line entirely.</div>
+<pre>SUB=$(az account show --query id -o tsv)
+ME=$(az ad signed-in-user show --query id -o tsv)
+az role assignment create --assignee $ME --role "Storage Blob Data Contributor" \
+  --scope /subscriptions/$SUB/resourceGroups/$RG/providers/Microsoft.Storage/storageAccounts/$SA</pre>
+<div class="expect"><b>Expected:</b> JSON describing the assignment. Allow a
+minute to propagate before the first upload.</div>
+<pre>az storage blob upload-batch --auth-mode login --account-name $SA \
+  -s data/plans -d plans --overwrite --no-progress
+az storage blob upload-batch --auth-mode login --account-name $SA \
+  -s data/runs -d run-ledgers --overwrite --no-progress
+az storage blob upload-batch --auth-mode login --account-name $SA \
+  -s data/packs -d audit-packs --overwrite --no-progress
+az storage blob upload-batch --auth-mode login --account-name $SA \
+  -s tests/fixtures/controls -d source-evidence --destination-path fixtures --overwrite --no-progress
+az storage blob upload-batch --auth-mode login --account-name $SA \
+  -s data/input -d source-evidence --destination-path input --overwrite --no-progress
+az storage blob upload-batch --auth-mode login --account-name $SA \
+  -s data/evidence_store -d evidence-store --overwrite --no-progress</pre>
+<div class="expect"><b>Expected:</b> each command prints one JSON entry per
+uploaded file. Verify a count:
+<code>az storage blob list --auth-mode login --account-name $SA -c plans --query "length(@)"</code>.</div>
+<div class="why"><b>Note:</b> the <code>data/</code> tree is gitignored — real
+evidence never travels through git. A brand-new clone gets its data by
+downloading from these containers
+(<code>az storage blob download-batch</code>, same flags with -s and -d
+swapped) or starts fresh with the synthetic fixtures, which need nothing.</div>
+
+<h2>10 · Seed the knowledge index (Foundry IQ)</h2>
+<div class="why"><b>Why:</b> the plan-compiler and check/verify agents ground
+themselves by retrieving from a knowledge index — approved plans, real-corpus
+lessons, adjudication precedents — instead of free-associating. This script
+creates the index and loads it; rerun it any time plans change (idempotent).</div>
+<pre>.venv/bin/python scripts/azure/seed_knowledge.py</pre>
+<div class="expect"><b>Expected:</b>
+<code>index 'iqr-knowledge': 12/12 documents indexed (4 plans, 8 lessons, 0 exemplars)</code>
+— numbers grow as plans and released exemplars accumulate.</div>
+
+<h2>11 · Run the platform end to end</h2>
+<pre>.venv/bin/python -m iqr.cli serve</pre>
+<p>Open <code>http://127.0.0.1:8400</code>, drag the contents of
+<code>tests/fixtures/controls/C10032/package</code> into the upload zone, and
+follow the flow: intake analyzes the package, suggests the control with an
+evidence-coverage score, tells you the package's story, and — after you
+confirm — runs the frozen plan with the ledger streaming live.</p>
+<div class="expect"><b>Expected:</b> verdict <b>pass</b>, findings with
+citations like <code>Recon!B30339</code>, a downloadable audit pack, and
+agent lines reading <code>agent[foundry]</code> — proof the cloud models are
+doing the reasoning.</div>
+<p>Then run the quality gates (the release bar for any future change):</p>
+<pre>.venv/bin/python -m iqr.cli eval
+.venv/bin/python -m iqr.cli eval --batch 3</pre>
+<div class="expect"><b>Expected:</b> <code>ALL GATES PASS</code>; the batch
+adds per-gate mean/min/max and a per-check confidence table (HIGH means the
+verdict was identical across every repeat). The full 13-case acceptance script
+is <code>docs/UAT.md</code>.</div>
+
+<h2 class="pagebreak">12 · Deploy the web console to Azure and secure it</h2>
+<p><span class="step">12.1</span> Create the hosting plan (free tier) and the
+web app, then tell it how to start:</p>
+<pre>az appservice plan create -n plan-iqr -g $RG -l $LOC --is-linux --sku F1
+az webapp create -n &lt;app-name&gt; -g $RG --plan plan-iqr --runtime "PYTHON:3.12"
+az webapp config set -n &lt;app-name&gt; -g $RG \
+  --startup-file "python -m uvicorn iqr.api.app:app --host 0.0.0.0 --port 8000"</pre>
+<p><span class="step">12.2</span> Give the app its settings (same values as
+.env — App Service settings are the cloud's version of the .env file; secrets
+never go into the code bundle):</p>
+<pre>az webapp config appsettings set -n &lt;app-name&gt; -g $RG --settings \
+  IQR_MODEL=auto AZURE_FOUNDRY_ENDPOINT=... AZURE_FOUNDRY_API_KEY=... \
+  AZURE_FOUNDRY_DEPLOYMENT=gpt-41-mini AZURE_FOUNDRY_EMBEDDING_DEPLOYMENT=text-embedding-3-small \
+  IQR_FOUNDRY_DEPLOYMENT_VERIFY=gpt-5-mini FOUNDRY_IQ_ENDPOINT=... FOUNDRY_IQ_API_KEY=... \
+  FOUNDRY_IQ_KNOWLEDGE_BASE=iqr-knowledge SCM_DO_BUILD_DURING_DEPLOYMENT=true</pre>
+<p><span class="step">12.3</span> Build the deployment bundle (code + frozen
+plans + fixtures, no secrets) and ship it:</p>
+<pre>bash scripts/azure/build_webapp_bundle.sh
+az webapp deploy -n &lt;app-name&gt; -g $RG --src-path deploy.zip --type zip</pre>
+<div class="expect"><b>Expected:</b> “deploy.zip ready”, then a deployment
+that finishes cleanly; a minute later
+<code>curl https://&lt;app-name&gt;.azurewebsites.net/api/topology</code>
+returns JSON.</div>
+<h3>12.4 · Lock it down — the app registration, explained</h3>
+<div class="why"><b>What an app registration is and why you need one:</b> it
+is the tenant's record that “this web app is allowed to ask our directory to
+sign users in.” The registration owns a client id and the redirect URL the
+sign-in flow returns to. App Service authentication (“Easy Auth”) uses it to
+force a directory sign-in in front of every request — no anonymous access, and
+no auth code inside IQR itself. In a centrally managed tenant, creating
+registrations may be restricted: request one from the directory admins with
+the redirect URL below, or ask them to grant your account the ability to
+create it.</div>
+<pre>APPID=$(az ad app create --display-name iqr-console \
+  --web-redirect-uris https://&lt;app-name&gt;.azurewebsites.net/.auth/login/aad/callback \
+  --enable-id-token-issuance true --sign-in-audience AzureADMyOrg --query appId -o tsv)
+TENANT=$(az account show --query tenantId -o tsv)
+
+az webapp auth config-version upgrade -n &lt;app-name&gt; -g $RG
+az webapp auth microsoft update -n &lt;app-name&gt; -g $RG \
+  --client-id $APPID --issuer https://login.microsoftonline.com/$TENANT/v2.0 --yes
+az webapp auth update -n &lt;app-name&gt; -g $RG --enabled true \
+  --action RedirectToLoginPage --redirect-provider AzureActiveDirectory</pre>
+<div class="expect"><b>Expected:</b> after ~a minute,
+<code>curl -s -o /dev/null -w "%{http_code}" https://&lt;app-name&gt;.azurewebsites.net/</code>
+prints <b>401</b> (anonymous rejected), while a browser gets the
+organization's sign-in page and signed-in members reach the console.</div>
+
+<h2>13 · Identity &amp; tenant-change playbook</h2>
+<table>
+  <tr><th>Scenario</th><th>What to do</th></tr>
+  <tr><td>Same tenant, new person joins</td><td>They run §2–§4, then §8 with the shared resource names. Grant them the storage data role (§9, with their <code>az ad signed-in-user show</code> id) if they will upload evidence</td></tr>
+  <tr><td>New subscription, same tenant</td><td><code>az account set --subscription &lt;new&gt;</code>, re-run §6–§10 (an hour, all scripted). App registration carries over unchanged</td></tr>
+  <tr><td>New tenant entirely (e.g., moving from a personal to an organizational directory)</td><td><code>az logout; az login --tenant &lt;new-id&gt;</code>; re-run §6–§12. Create the app registration in the new tenant (§12.4) — or request it from the directory admins if self-service registration is disabled — and update the web app's issuer/client id with the same two commands</td></tr>
+  <tr><td>Organization requires admin approval for apps</td><td>Send the admins: the app name, the redirect URL (<code>https://&lt;app-name&gt;.azurewebsites.net/.auth/login/aad/callback</code>), “ID tokens enabled, single-tenant.” That is everything they need to create/approve it</td></tr>
+  <tr><td>Keys are prohibited by policy</td><td>Switch service-to-service auth to managed identities: <code>az webapp identity assign</code>, grant that identity the storage/search/Foundry data roles, and remove the key variables — the production-standards document (§4) lists the exact roles</td></tr>
+  <tr><td>MFA / Conditional Access enforced</td><td>Nothing changes in this guide — <code>az login</code> honors the tenant's policies. Expect tokens to expire more often; re-run <code>az login</code> when a command replies “interaction required”</td></tr>
+</table>
+
+<h2>14 · Troubleshooting</h2>
+<table>
+  <tr><th>Symptom</th><th>Cause → fix</th></tr>
+  <tr><td><code>answered by: stub</code></td><td>Endpoint/key/deployment name wrong in .env, or no network. The stub answering is the designed fallback — fix .env and rerun <code>testmodel</code></td></tr>
+  <tr><td><code>InsufficientQuota</code> on deployment create</td><td>Subscription lacks quota for that model — <code>az cognitiveservices usage list -l $LOC -o table</code> shows what's available; substitute and update .env</td></tr>
+  <tr><td><code>ServiceModelDeprecating</code></td><td>That model version no longer accepts new deployments — deploy the current version instead</td></tr>
+  <tr><td>401 from the deployed console for yourself</td><td>You're signed in to a different tenant in that browser, or the registration's redirect URL doesn't match the app name — recheck §12.4</td></tr>
+  <tr><td><code>AuthorizationFailed</code> on uploads</td><td>The role assignment hasn't propagated (wait a minute) or was scoped to the wrong storage account</td></tr>
+  <tr><td>Tests fail offline</td><td>Should never happen from a clean clone — check Python ≥ 3.12 and that Tesseract is installed (two OCR tests need it)</td></tr>
+  <tr><td>Everything is slow; reads hang</td><td>The repo sits in a cloud-synced folder — move it to a plain local path (§2 warning)</td></tr>
+  <tr><td>Corporate proxy</td><td><code>export HTTPS_PROXY=http://proxy:port</code> — both pip and the platform honor it</td></tr>
+</table>
+
+<h2>15 · Appendix — the whole thing as one command sequence</h2>
+<pre># prerequisites installed (§2), then:
+git clone https://github.com/git-bonda108/IQR_Agentic_AI.git IQR && cd IQR
+python3 -m venv .venv && .venv/bin/pip install -e .
+.venv/bin/python tests/fixtures/build_fixtures.py && .venv/bin/python -m pytest tests/ -q   # 61 passed
+
+az login && az account set --subscription "&lt;sub&gt;"
+export LOC=eastus2 RG=rg-iqr-sox SA=stiqrsox&lt;sfx&gt; FOUNDRY=iqr-foundry-&lt;sfx&gt; SEARCH=iqr-search-&lt;sfx&gt;
+bash scripts/azure/provision.sh                       # RG + storage + tables + Foundry + Search
+# add deployments: gpt-5-mini, model-router, text-embedding-3-small (§7)
+cp .env.example .env                                  # fill from the three key commands (§8)
+.venv/bin/python -m iqr.cli testmodel                 # answered by: foundry
+# grant blob role + upload-batch the six data sets (§9)
+.venv/bin/python scripts/azure/seed_knowledge.py      # 12/12 indexed
+.venv/bin/python -m iqr.cli eval --batch 3            # ALL GATES PASS
+# App Service + settings + bundle + deploy + Easy Auth (§12)</pre>
+
+<p class="footer-note">Companions in the repository: <b>docs/UAT.md</b> (13
+acceptance cases) · <b>docs/PRODUCTION_STANDARDS.md</b> (enterprise hardening
+ladder: managed identities, private endpoints, WORM retention, CI/CD gates) ·
+<b>docs/design/IQR_Design_Document_v4.docx</b> (the architecture) ·
+<b>docs/AZURE_FOUNDRY.md</b> (integration reference). The platform's own rule
+applies to this guide too: if a step's expected output doesn't match, stop and
+fix before continuing — every later step assumes the earlier ones are green.</p>
+
+</body>
+</html>
