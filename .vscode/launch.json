@@ -1,0 +1,31 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "IQR Console (127.0.0.1:8400)",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "uvicorn",
+      "args": ["iqr.api.app:app", "--host", "127.0.0.1", "--port", "8400"],
+      "cwd": "${workspaceFolder}",
+      "justMyCode": false
+    },
+    {
+      "name": "IQR: run control 10032 on real package",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "iqr.cli",
+      "args": ["run", "C10032",
+               "data/input/iqr_build_package/03_source_evidence/control_10032_consolidation_recon"],
+      "cwd": "${workspaceFolder}"
+    },
+    {
+      "name": "IQR: eval harness (offline gates)",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "iqr.cli",
+      "args": ["eval"],
+      "cwd": "${workspaceFolder}"
+    }
+  ]
+}
