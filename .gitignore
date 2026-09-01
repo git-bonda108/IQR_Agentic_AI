@@ -6,7 +6,7 @@ data/
 *_draft_plan.json
 
 # python
-.venv/
+.venv
 __pycache__/
 *.pyc
 *.egg-info/
