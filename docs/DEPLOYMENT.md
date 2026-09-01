@@ -5,6 +5,14 @@ working local deployment: web console, CLI, tests, and eval harness. No admin
 rights, no cloud services, no telemetry. The only optional network dependency
 is the LLM endpoint you configure — everything else runs fully offline.
 
+> **Deploying with Azure (AI Foundry model seats, Foundry IQ retrieval, blob
+> data estate, cloud console)?** Use **[MIGRATION.md](MIGRATION.md)** — the
+> phase-by-phase guide from a fresh machine to a fully Azure-connected
+> deployment — with **[AZURE_FOUNDRY.md](AZURE_FOUNDRY.md)** as the
+> integration reference and **[PRODUCTION_STANDARDS.md](PRODUCTION_STANDARDS.md)**
+> for the enterprise hardening ladder. This document covers the local/offline
+> path, which remains the acceptance gate before any cloud work.
+
 ---
 
 ## 1. Prerequisites
@@ -54,7 +62,9 @@ cp .env.example .env    # then edit .env
 
 | Variable | Meaning |
 |---|---|
-| `IQR_MODEL` | `stub` (offline, default) · `davinci` (require the configured endpoint) · `auto` (try endpoints, fall back to stub) |
+| `IQR_MODEL` | `stub` (offline, default) · `foundry` (Azure AI Foundry deployment) · `davinci` (any OpenAI-compatible endpoint) · `auto` (Foundry → endpoints → stub fallback chain) |
+| `AZURE_FOUNDRY_*` | Azure AI Foundry seat: endpoint, key, deployment, API version, embedding deployment — see [AZURE_FOUNDRY.md](AZURE_FOUNDRY.md) |
+| `IQR_MODEL_<SEAT>` / `IQR_FOUNDRY_DEPLOYMENT_<SEAT>` | Per-seat model routing (`PLAN_COMPILE`, `VISION`, `TEMPORAL`, `SIGNOFF`, `VERIFY`) |
 | `DAVINCI_API_URL` / `DAVINCI_API_KEY` | Your approved OpenAI-compatible chat endpoint (any gateway that speaks `/v1/chat/completions`) |
 | `IQR_SECONDARY_API_URL` / `_KEY` | Optional second endpoint, same wire format |
 | `ANTHROPIC_API_KEY` | Optional: lets the lab/dev machine use Claude on the agent seats |

@@ -77,19 +77,23 @@ validations without touching the machinery.
 iqr/
   schemas/      validation plan, evidence graph, findings (pydantic, the contract)
   ingest/       recursive unpack (email→zip→workbook→image→OLE), extractors, graph builder
+  intake.py     bulk-upload understanding: ingest → infer the control → narrate the story
   tools/        deterministic tools: cell_read, recompute, timestamp, email_parse, ocr_read, citation
   checks/       numeric (model-free), vision/temporal/signoff (tool-using agents), sentinel
-  graph/        LangGraph topology + nodes (ingest, match, sentinel, check, verify, adjudicate)
+  graph/        LangGraph topology + nodes; match = name pass + semantic (embedding) rescue
   plan/         compiler (design-time agent) + SME review/freeze
-  knowledge/    Control KB + Golden Library (vector-indexed, eval-gated)
-  eval/         harness, five gate metrics, seeded-defect generator
+  knowledge/    Control KB + Golden Library (Foundry IQ / local), embeddings seat
+  learn/        reinforcement (bandit posteriors over adjudications) → confidence, review priority
+  eval/         harness (five gates), batch scoring + per-check confidence, seeded defects
   pack/         audit-ready pack assembly
   api/          FastAPI (127.0.0.1) behind the console
-  agents/       model client (Foundry/DaVinci chain + stub) and tool-agent runtime
+  agents/       model client (per-seat Foundry routing + stub) and tool-agent runtime
   mcp_server.py IQR as an MCP server: tools + resources for external agents
 webapp/         the console (single static page over the API)
+scripts/azure/  provisioning, knowledge seeding, webapp bundle
 tests/          invariants + fixtures; tests/real/ = real-corpus probes
-docs/           deployment guide, system design, validation report
+docs/           MIGRATION (new-machine → Azure), UAT (13 cases), DEPLOYMENT (local),
+                AZURE_FOUNDRY, PRODUCTION_STANDARDS, REAL_VALIDATION, design/ (v4 Word+HTML, GIFs)
 data/plans/     frozen plans (committed - they are deployable configuration)
 ```
 
