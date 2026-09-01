@@ -113,16 +113,16 @@ def build_C23024(root: Path) -> None:
                    "A3": "Rebate rate", "B3": 0.02,
                    "A4": "Rebate payable", "B4": 9080.0},
         "Meta": {"A1": "Prepared", "B1": "2026-07-05 14:00 GMT",
-                 "A2": "Preparer", "B2": "priya.sharma@hp.com"}}))
+                 "A2": "Preparer", "B2": "priya.sharma@example.com"}}))
     (pkg / "approval_C23024.eml").write_bytes(_eml(
-        "ravi.mehta@hp.com", "priya.sharma@hp.com",
+        "ravi.mehta@example.com", "priya.sharma@example.com",
         "RE: Q2 FY26 partner rebate calculation - approval",
         datetime(2026, 7, 6, 9, 30, tzinfo=timezone(timedelta(hours=-5))),
         ["Priya,", "",
          "Reviewed and approved the Q2 partner rebate calculation.",
          "Rebate payable of 9,080.00 ties to the certified sales extract.", "",
          "Ravi Mehta", "Controller, Print Finance"],
-        "<c23024-approval-q2fy26@hp.com>"))
+        "<c23024-approval-q2fy26@example.com>"))
     _doc404(root / "C23024" / "404_C23024.docx", [
         "Control C23024 - Quarterly Partner Rebate Calculation. The financial "
         "analyst recomputes partner rebates from the certified sales extract; "
@@ -151,7 +151,7 @@ def build_C10032(root: Path) -> None:
                   "A3": "TB per consolidation ledger", "B3": 5432100.25,
                   "A5": "Delta", "B5": 0.0},
         "Meta": {"A1": "WEBI run (GMT)", "B1": "2026-06-03 09:15",
-                 "A2": "Preparer", "B2": "lena.fischer@hp.com"}}))
+                 "A2": "Preparer", "B2": "lena.fischer@example.com"}}))
     support_zip = _zip([
         ("recon_checklist.docx", _docx_simple(
             ["Consolidation reconciliation checklist - May 2026",
@@ -161,14 +161,14 @@ def build_C10032(root: Path) -> None:
                       "A3": "Cleared", "B3": 61200.0,
                       "A5": "Open (monitored separately)", "B5": 17200.0}}))])
     (pkg / "approval_C10032.eml").write_bytes(_eml(
-        "tomas.alvarez@hp.com", "lena.fischer@hp.com",
+        "tomas.alvarez@example.com", "lena.fischer@example.com",
         "RE: May 2026 consolidation reconciliation - approval",
         datetime(2026, 6, 3, 8, 45, tzinfo=timezone(timedelta(hours=-5))),  # CDT
         ["Lena,", "",
          "Approved - the May consolidation reconciliation ties to the certified WEBI TB.",
          "Support attached for the file.", "",
          "Tomas Alvarez", "Consolidations Manager"],
-        "<c10032-approval-may26@hp.com>",
+        "<c10032-approval-may26@example.com>",
         attachments=[("recon_support.zip", support_zip)]))
     _doc404(root / "C10032" / "404_C10032.docx", [
         "Control C10032 - Monthly Consolidation Reconciliation. The consolidation "
@@ -197,18 +197,18 @@ def build_C10075(root: Path) -> None:
         "EMR": {"A7": "Total Qty per EMR extract", "C7": 4820,
                 "A8": "Reporting period", "C8": "Q2 FY26"},
         "Meta": {"A1": "Prepared", "B1": "2026-07-10 11:00 GMT",
-                 "A2": "Preparer", "B2": "dana.wu@hp.com"}}))
+                 "A2": "Preparer", "B2": "dana.wu@example.com"}}))
     (pkg / "screenshot_qty.png").write_bytes(_screenshot(
         ["EMR Extract - Q2 FY26", "Total Qty: 4,820", "Source: certified WEBI folder"]))
     (pkg / "approval_C10075.eml").write_bytes(_eml(
-        "marco.rossi@hp.com", "dana.wu@hp.com",
+        "marco.rossi@example.com", "dana.wu@example.com",
         "RE: Q2 FY26 EMR review - sign-off",
         datetime(2026, 7, 10, 16, 20, tzinfo=timezone.utc),
         ["Dana,", "",
          "Reviewed and approved the Q2 EMR quarterly review.",
          "Screenshot quantities tie to the workbook extract.", "",
          "Marco Rossi", "External Reporting Manager"],
-        "<c10075-approval-q2fy26@hp.com>"))
+        "<c10075-approval-q2fy26@example.com>"))
     _doc404(root / "C10075" / "404_C10075.docx", [
         "Control C10075 - Quarterly External Manufacturing Report (EMR) Review. "
         "The analyst ties screenshot IPE from the certified WEBI folder to the "

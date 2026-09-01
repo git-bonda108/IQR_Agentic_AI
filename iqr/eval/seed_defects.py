@@ -76,7 +76,7 @@ def build_variants(fixtures_root: Path, out_root: Path) -> list[dict]:
 
     p = copy_package(fixtures_root / "C10075" / "package",
                      out_root / "C10075_preparer_equals_reviewer")
-    set_email_sender(p, "approval_C10075.eml", "dana.wu@hp.com")
+    set_email_sender(p, "approval_C10075.eml", "dana.wu@example.com")
     specs.append({"control_id": "C10075", "variant": "preparer_equals_reviewer",
                   "package": str(p), "expect": {"s1": "fail"}, "kind": "defect"})
 

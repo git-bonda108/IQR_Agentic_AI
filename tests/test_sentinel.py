@@ -118,13 +118,13 @@ def test_tolerance_edge_flagged():
 
 
 def test_single_actor_chain_is_high():
-    em = EmailFact(file_hash="a" * 64, message_id="<m1@x>", sender="Prep Arer <prep@hp.com>",
-                   to=["boss@hp.com"], date_raw="2026-05-01", subject="Approval",
+    em = EmailFact(file_hash="a" * 64, message_id="<m1@x>", sender="Prep Arer <prep@example.com>",
+                   to=["boss@example.com"], date_raw="2026-05-01", subject="Approval",
                    lines=["approved"], attachment_hashes=[])
     plan = _plan(checks=[CheckDef(id="s1", check_type="signoff", description="",
                                   inputs=["e1"],
                                   params={"approval_email_evidence": "e1",
-                                          "preparer": "prep@hp.com"})],
+                                          "preparer": "prep@example.com"})],
                  signoff=SignoffRule(preparer_role="p", approver_role="a"))
     g = _graph([_leaf("a" * 64, "mail.eml", kind="email")], emails=[em])
     hits = [a for a in run_sentinel(g, plan) if a.detector == "single_actor"]

@@ -1,4 +1,4 @@
-"""Direct OCR quality test on real HP screenshots - no full ingest needed."""
+"""Direct OCR quality test on real production screenshots - no full ingest needed."""
 import io, zipfile
 from pathlib import Path
 from PIL import Image

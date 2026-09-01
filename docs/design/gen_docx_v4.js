@@ -1,4 +1,4 @@
-/* Generate IQR_Design_Document_v4.docx + IQR_UAT_Guide.docx (Arial, HP blue). */
+/* Generate IQR_Design_Document_v4.docx + IQR_UAT_Guide.docx (Arial, brand blue). */
 const fs = require("fs");
 const {
   Document, Packer, Paragraph, TextRun, HeadingLevel, Table, TableRow,

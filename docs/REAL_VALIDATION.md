@@ -1,6 +1,6 @@
 # Real-Corpus Validation Report
 
-**Date:** 2026-08-26 · **Corpus:** actual HP GRC evidence packages for controls
+**Date:** 2026-08-26 · **Corpus:** actual production GRC evidence packages for controls
 10032, 23024, 10075 (`data/input/iqr_build_package/03_source_evidence/`) ·
 **Mode:** offline (stub model) — every result below is deterministic tooling
 against real files, no LLM claims involved.
@@ -51,7 +51,7 @@ Ingest: 16 leaves, 30,490 cells, **6 emails, 245 images**, 1 honest error.
   `BadZipFile`, pipeline continued. Fetching linked artifacts from
   SharePoint is a Batch-6 connector feature.
 
-## OCR verdict (real HP screenshots, Tesseract)
+## OCR verdict (real production screenshots, Tesseract)
 
 - **Provenance markers read reliably:** "SAP BI Launch Pad",
   `<internal BI host>`, report/segment names, GRC bookmark visible in
@@ -88,7 +88,7 @@ Ingest: 16 leaves, 30,490 cells, **6 emails, 245 images**, 1 honest error.
 Ingest times measured here (7–17 min for 10032) are dominated by this
 laptop's constraints (iCloud-synced working directory, near-full disk, low
 free RAM — the OOM kills at exit 137 were the OS, not the code). On a
-standard HP workstation with a local SSD expect minutes, not tens of
+standard corporate workstation with a local SSD expect minutes, not tens of
 minutes. A parsed-artifact cache (hash-keyed) is the planned optimization
 before shadow-cycle scale.
 

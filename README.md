@@ -49,7 +49,7 @@ ledger. **Governed learning:** human adjudications grow a Golden Library that
 ships only behind a five-gate regression eval plus SME sign-off.
 
 Deep design (agent/tool roster, sequence diagrams, eval mechanics, Golden
-Library lifecycle): **[docs/design/IQR_System_Design.html](docs/design/IQR_System_Design.html)** ·
+Library lifecycle): **[docs/design/IQR_Design_Document_v4.docx](docs/design/IQR_Design_Document_v4.docx)** ([html](docs/design/IQR_Design_Document_v4.html)) ·
 Real-corpus validation results: **[docs/REAL_VALIDATION.md](docs/REAL_VALIDATION.md)**
 
 ## Model seat

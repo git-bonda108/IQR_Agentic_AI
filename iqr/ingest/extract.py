@@ -19,7 +19,7 @@ from iqr.schemas.evidence_graph import (CellFact, DocFact, EmailFact,
 
 import os as _os
 
-# tunable for memory-constrained machines; HP workstation defaults are fine
+# tunable for memory-constrained machines; standard workstation defaults are fine
 MAX_CELLS_PER_FILE = int(_os.environ.get("IQR_MAX_CELLS_PER_FILE", 4_000_000))
 STREAM_THRESHOLD = int(_os.environ.get("IQR_STREAM_THRESHOLD", 60_000_000))
 

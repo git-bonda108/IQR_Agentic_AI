@@ -32,7 +32,7 @@ class Anomaly(BaseModel):
     citations: list[Citation] = Field(default_factory=list)
 
 
-# fiscal-period tokens as they appear in HP artifacts: Q226, Q2'26, P06 FY26, FY26
+# fiscal-period tokens as they appear in corporate GRC artifacts: Q226, Q2'26, P06 FY26, FY26
 _PERIOD_RE = re.compile(
     r"(?:Q(?P<q>[1-4])\s*[-' ]?\s*(?P<qy>\d{2})(?!\d)|P(?P<p>\d{2})[-_ ]?FY[-_ ]?(?P<py>\d{2}))",
     re.IGNORECASE)
