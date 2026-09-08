@@ -67,7 +67,6 @@ cp .env.example .env    # then edit .env
 | `IQR_MODEL_<SEAT>` / `IQR_FOUNDRY_DEPLOYMENT_<SEAT>` | Per-seat model routing (`PLAN_COMPILE`, `VISION`, `TEMPORAL`, `SIGNOFF`, `VERIFY`) |
 | `DAVINCI_API_URL` / `DAVINCI_API_KEY` | Your approved OpenAI-compatible chat endpoint (any gateway that speaks `/v1/chat/completions`) |
 | `IQR_SECONDARY_API_URL` / `_KEY` | Optional second endpoint, same wire format |
-| `ANTHROPIC_API_KEY` | Optional: lets the lab/dev machine use Claude on the agent seats |
 | `IQR_STUB_FALLBACK` | Keep `1` so the deterministic stub catches runs when every endpoint is down |
 | `IQR_STREAM_THRESHOLD` | Workbooks larger than this many bytes stream in read-only mode (default 60000000; lower on low-RAM machines) |
 | `IQR_MAX_CELLS_PER_FILE` | Per-workbook cell cap with an explicit truncation sentinel (default 4000000) |

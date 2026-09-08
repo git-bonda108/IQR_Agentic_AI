@@ -1,5 +1,5 @@
 """IQR as an MCP server: the platform's operations exposed as typed tools and
-resources so any MCP client - an Azure AI Foundry agent, Claude, an IDE - can
+resources so any MCP client - an Azure AI Foundry agent, an IDE, an orchestrator - can
 drive validation runs without touching the machinery.
 
 The three laws still hold on this surface: tools execute the same frozen

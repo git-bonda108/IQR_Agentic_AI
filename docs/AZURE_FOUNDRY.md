@@ -76,7 +76,7 @@ Behavior (`iqr/knowledge/foundry_iq.py`):
 ## 3. IQR as an MCP server (agents, tools, resources, data)
 
 `iqr/mcp_server.py` exposes the platform to any MCP client — an Azure AI
-Foundry agent, Claude, an IDE — as typed tools and resources:
+Foundry agent, an IDE, an orchestrator — as typed tools and resources:
 
 | Kind | Name | What it does |
 |---|---|---|
@@ -114,7 +114,7 @@ The MCP surface never bypasses invariants: only frozen, SME-approved plans
 can run; drafts from `compile_plan` are not runnable until approved; every
 verdict that crosses this boundary carries its citations.
 
-### Claude Code / desktop client config
+### Desktop MCP client config
 
 ```json
 {

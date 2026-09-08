@@ -56,7 +56,7 @@ Real-corpus validation results: **[docs/REAL_VALIDATION.md](docs/REAL_VALIDATION
 
 One adapter, temperature 0, backend chosen in `.env`: Azure AI Foundry
 (chat-completions deployment), any OpenAI-compatible gateway (e.g. an
-approved internal DaVinci endpoint), optionally Anthropic Claude for lab
+approved internal gateway endpoint), optionally a secondary lab endpoint for
 work, and a deterministic offline stub as permanent fallback. The ledger
 records which backend answered every call. The demo and the entire test
 suite run with no keys at all.
@@ -68,7 +68,7 @@ Foundry as the model seat (`IQR_MODEL=foundry` or first in the `auto` chain);
 **Foundry IQ** knowledge retrieval behind the Control KB / Golden Library
 (falls back to the local index, visibly, when unreachable); and an **MCP
 server** (`python -m iqr.mcp_server`) exposing the platform as typed tools
-and resources so a Foundry agent, Claude, or any MCP client can run cited
+and resources so a Foundry agent or any MCP client can run cited
 validations without touching the machinery.
 
 ## Repository map

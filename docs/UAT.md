@@ -105,6 +105,6 @@ synthetic fixtures in `tests/fixtures/controls/`, which need nothing.
 
 ## UAT-12 · MCP surface
 1. `IQR_MCP_TRANSPORT=stdio .venv/bin/python -m iqr.mcp_server` from an MCP
-   client (or Claude), call `list_controls` then `run_control` on a fixture.
+   client, call `list_controls` then `run_control` on a fixture.
 - **Expect:** typed verdict JSON with citations and a pack path; unapproved
   plans are refused.
